@@ -142,7 +142,7 @@ void drawLine(unsigned int timeInSeconds, unsigned int temperature) {
 
   display.writePixel(xPosPixel, yPosPixel, GxEPD_BLACK);
   // X axis complete due to the labels on Y.
-  display.updateWindow(0, y0GraphArea, GxGDEW042T2_WIDTH, heightGraphArea);
+  // display.updateWindow(0, y0GraphArea, GxGDEW042T2_WIDTH, heightGraphArea);
 }
 
 void setHeatingStatus(bool heatingOn) {
@@ -160,8 +160,9 @@ void setHeatingStatus(bool heatingOn) {
     display.drawRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
                      heightStatusBox, GxEPD_BLACK);
   }
-  display.updateWindow(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
-                       heightStatusBox);
+  // display.updateWindow(x0HeatingStatusBox, y0HeatingStatusBox,
+  // widthStatusBox,
+  //                      heightStatusBox);
 }
 
 void setHXTemperature(unsigned int currentHXTemp) {
@@ -174,7 +175,7 @@ void setHXTemperature(unsigned int currentHXTemp) {
   char *output = (char *)malloc(100 * sizeof(char));
   sprintf(output, "%3d", currentHXTemp);
   display.print(output);
-  display.updateWindow(xHXInfo, 0, widthHXInfo, heightInfoBar);
+  // display.updateWindow(xHXInfo, 0, widthHXInfo, heightInfoBar);
   free(output);
   display.setFont(nullptr);
 }
@@ -190,7 +191,7 @@ void setSteamTemperature(unsigned int currentSteamTemp,
   char *output = (char *)malloc(100 * sizeof(char));
   sprintf(output, "%3d/%3d", currentSteamTemp, targetSteamTemp);
   display.print(output);
-  display.updateWindow(xSteamInfo, 0, widthSteamInfo, heightInfoBar);
+  // display.updateWindow(xSteamInfo, 0, widthSteamInfo, heightInfoBar);
   free(output);
   display.setFont(nullptr);
 }
@@ -205,7 +206,7 @@ void setShotTimer(unsigned int timerValueInS) {
   char *output = (char *)malloc(100 * sizeof(char));
   sprintf(output, "%d", timerValueInS);
   display.print(output);
-  display.updateWindow(xShotTimer, 0, widthShotTimer, heightInfoBar);
+  // display.updateWindow(xShotTimer, 0, widthShotTimer, heightInfoBar);
   free(output);
   display.setFont(nullptr);
 }
@@ -225,7 +226,7 @@ void prepareInfoBar() {
   display.drawRect(xHXInfo, 0, widthHXInfo, heightInfoBar, GxEPD_BLACK);
   display.drawRect(xSteamInfo, 0, widthSteamInfo, heightInfoBar, GxEPD_BLACK);
   display.drawRect(xShotTimer, 0, widthShotTimer, heightInfoBar, GxEPD_BLACK);
-  display.updateWindow(0, 0, GxGDEW042T2_WIDTH, heightInfoBar);
+  // display.updateWindow(0, 0, GxGDEW042T2_WIDTH, heightInfoBar);
 
   // setHeatingStatus(rand() % 2);
   // setHXTemperature(rand() % 140, rand() % 140);
@@ -254,7 +255,7 @@ void prepareTemperatureDrawingArea() {
 
   display.drawRoundRect(x0GraphArea, y0GraphArea, widthGraphArea,
                         heightGraphArea, 10, GxEPD_BLACK);
-  display.updateWindow(0, y0GraphArea, GxGDEW042T2_WIDTH, heightGraphArea);
+  // display.updateWindow(0, y0GraphArea, GxGDEW042T2_WIDTH, heightGraphArea);
 }
 
 void drawGraph() {
@@ -436,18 +437,18 @@ void handlePump() {
 
 void loop() {
   getMachineInput();
-  if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
-    Serial.println((double)(millis() - timeSinceSetupFinished) / (double)1000);
-    updateValuesInDisplay((double)(millis() - timeSinceSetupFinished) /
-                          (double)1000);
-    nonBlockingDelayStart = millis();
-    nonBlockingDelayDuration = 1000;
-  }
-
   handlePump();
   if (pumpRunning && (millis() - shotTimerUpdateDelay) > 1000) {
     shotTimerUpdateDelay = millis();
     setShotTimer((millis() - pumpStartedTime) / 1000);
   }
+  if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
+    updateValuesInDisplay((double)(millis() - timeSinceSetupFinished) /
+                          (double)1000);
+    nonBlockingDelayStart = millis();
+    nonBlockingDelayDuration = 1000;
+    display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
+  }
+
   ArduinoOTA.handle();
 }
