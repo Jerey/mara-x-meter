@@ -78,7 +78,9 @@ constexpr const int16_t yTextInfoBar = 5;
 
 SoftwareSerial mySerial(D4, D6); // D6 - RX on Machine , D4 - TX on Machine
 Timer shotTimer;
-long serialUpdateMillis = 0;
+Timer updateGraphTimer;
+unsigned long serialUpdateMillis = 0;
+unsigned long timeSinceSetupFinished = 0;
 
 /**
  * Function to connect to a wifi. It waits until a connection is established.
@@ -91,55 +93,6 @@ void connectToWifi() {
 
 const byte numChars = 32;
 char receivedChars[numChars];
-
-void setup() {
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println("setup");
-
-  connectToWifi();
-  ArduinoOTA.setHostname(hostName);
-  ArduinoOTA.onStart([]() {
-    String type;
-    if (ArduinoOTA.getCommand() == U_FLASH) {
-      type = "sketch";
-    } else { // U_FS
-      type = "filesystem";
-    }
-  });
-  ArduinoOTA.onEnd([]() { Serial.println("\nEnd"); });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) {
-      Serial.println("Auth Failed");
-    } else if (error == OTA_BEGIN_ERROR) {
-      Serial.println("Begin Failed");
-    } else if (error == OTA_CONNECT_ERROR) {
-      Serial.println("Connect Failed");
-    } else if (error == OTA_RECEIVE_ERROR) {
-      Serial.println("Receive Failed");
-    } else if (error == OTA_END_ERROR) {
-      Serial.println("End Failed");
-    }
-  });
-  ArduinoOTA.begin();
-  Serial.println("Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  display.init(115200); // enable diagnostic output on Serial
-
-  Serial.println("setup done");
-
-  mySerial.begin(9600);
-  memset(receivedChars, 0, numChars);
-  Serial.print("Request initial serial update: ");
-  Serial.println(mySerial.availableForWrite());
-  mySerial.write(0x11);
-}
 
 void clearEntireDisplay() {
   display.eraseDisplay(false);
@@ -183,10 +136,8 @@ void drawLine(unsigned int timeInSeconds, unsigned int temperature) {
   Serial.println(yPosPixel);
 
   display.writePixel(xPosPixel, yPosPixel, GxEPD_BLACK);
-  if (timeInSeconds % 100 == 0) {
-    // X axis complete due to the labels on Y.
-    display.updateWindow(0, y0GraphArea, GxGDEW042T2_WIDTH, heightGraphArea);
-  }
+  // X axis complete due to the labels on Y.
+  display.updateWindow(0, y0GraphArea, GxGDEW042T2_WIDTH, heightGraphArea);
 }
 
 void setHeatingStatus(bool heatingOn) {
@@ -199,6 +150,8 @@ void setHeatingStatus(bool heatingOn) {
     display.fillRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
                      heightStatusBox, GxEPD_BLACK);
   } else {
+    display.fillRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
+                     heightStatusBox, GxEPD_WHITE);
     display.drawRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
                      heightStatusBox, GxEPD_BLACK);
   }
@@ -206,13 +159,15 @@ void setHeatingStatus(bool heatingOn) {
                        heightStatusBox);
 }
 
-void setHXTemperature(unsigned int currentHXTemp, unsigned int targetHXTemp) {
+void setHXTemperature(unsigned int currentHXTemp) {
   constexpr int16_t x0HxTemp = xHXInfo + 2;
   constexpr int16_t y0HxTemp = yTextInfoBar + heightInfoBar / 2;
+  display.fillRect(xHXInfo + 1, yTextInfoBar + 9, widthHXInfo - 2,
+                   heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
   display.setFont(&FreeSerif9pt7b);
   display.setCursor(x0HxTemp, y0HxTemp);
   char *output = (char *)malloc(100 * sizeof(char));
-  sprintf(output, "%3d/%3d", currentHXTemp, targetHXTemp);
+  sprintf(output, "%3d", currentHXTemp);
   display.print(output);
   display.updateWindow(xHXInfo, 0, widthHXInfo, heightInfoBar);
   free(output);
@@ -223,6 +178,8 @@ void setSteamTemperature(unsigned int currentSteamTemp,
                          unsigned int targetSteamTemp) {
   constexpr int16_t x0SteamTemp = xSteamInfo + 2;
   constexpr int16_t y0SteamTemp = yTextInfoBar + heightInfoBar / 2;
+  display.fillRect(xSteamInfo + 1, yTextInfoBar + 9, widthSteamInfo - 2,
+                   heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
   display.setFont(&FreeSerif9pt7b);
   display.setCursor(x0SteamTemp, y0SteamTemp);
   char *output = (char *)malloc(100 * sizeof(char));
@@ -263,10 +220,10 @@ void prepareInfoBar() {
   display.drawRect(xShotTimer, 0, widthShotTimer, heightInfoBar, GxEPD_BLACK);
   display.updateWindow(0, 0, GxGDEW042T2_WIDTH, heightInfoBar);
 
-  setHeatingStatus(rand() % 2);
-  setHXTemperature(rand() % 140, rand() % 140);
-  setSteamTemperature(rand() % 140, rand() % 140);
-  setShotTimer(rand() % 1800);
+  // setHeatingStatus(rand() % 2);
+  // setHXTemperature(rand() % 140, rand() % 140);
+  // setSteamTemperature(rand() % 140, rand() % 140);
+  // setShotTimer(rand() % 1800);
 }
 
 void prepareTemperatureDrawingArea() {
@@ -294,7 +251,7 @@ void prepareTemperatureDrawingArea() {
 }
 
 void drawGraph() {
-  prepareTemperatureDrawingArea();
+  // prepareTemperatureDrawingArea();
 
   // 30 min == 1800 Sekunden
   for (int i = 0; i < 1800; i++) {
@@ -356,28 +313,114 @@ void getMachineInput() {
     mySerial.write(0x11);
   }
 }
+void setup() {
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println("setup");
+
+  connectToWifi();
+  ArduinoOTA.setHostname(hostName);
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_FS
+      type = "filesystem";
+    }
+  });
+  ArduinoOTA.onEnd([]() { Serial.println("\nEnd"); });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println("Auth Failed");
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println("Begin Failed");
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println("Connect Failed");
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println("Receive Failed");
+    } else if (error == OTA_END_ERROR) {
+      Serial.println("End Failed");
+    }
+  });
+  ArduinoOTA.begin();
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  display.init(115200); // enable diagnostic output on Serial
+  display.fillScreen(GxEPD_WHITE);
+  clearEntireDisplay();
+  // drawRandomBootScreen();
+  // display.fillScreen(GxEPD_WHITE);
+  // clearEntireDisplay();
+  prepareInfoBar();
+  prepareTemperatureDrawingArea();
+
+  // TODO: Pump Pin -> Add docu or so.
+  pinMode(D0, INPUT_PULLUP);
+
+  mySerial.begin(9600);
+  memset(receivedChars, 0, numChars);
+  Serial.print("Request initial serial update: ");
+  Serial.println(mySerial.availableForWrite());
+  mySerial.write(0x11);
+  timeSinceSetupFinished = millis();
+}
+void updateValuesInDisplay(unsigned int currentTimeInSeconds) {
+  unsigned int currentValue = 0;
+  auto result = strtok(receivedChars, ",");
+
+  unsigned int currentSteamTemp = 0;
+  while (result != NULL) {
+    // C1.23
+    // 113
+    // 112
+    // 091
+    // 0000
+    // 0
+    switch (currentValue) {
+    case 0:
+      break;
+    case 1:
+      // Steam temp in C
+      Serial.print("STEAM TEMP: ");
+      Serial.println(atoi(result));
+      currentSteamTemp = atoi(result);
+
+      break;
+    case 2:
+      // Target Steam temp in C
+      setSteamTemperature(currentSteamTemp, atoi(result));
+      break;
+    case 3:
+      // HX temp in C
+      setHXTemperature(atoi(result));
+      drawLine(currentTimeInSeconds, atoi(result));
+      break;
+    case 5:
+      // Heating On Off
+      setHeatingStatus(atoi(result));
+      break;
+    default:
+      break;
+    }
+    result = strtok(NULL, ",");
+    currentValue++;
+  }
+}
 
 void loop() {
+  getMachineInput();
   if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
-    // if (mrBeansTurn) {
-    //   display.fillScreen(GxEPD_WHITE);
-    //   clearEntireDisplay();
-    //   drawRandomBootScreen();
-    //   nonBlockingDelayStart = millis();
-    //   nonBlockingDelayDuration = 1000;
-    //   mrBeansTurn = false;
-    // } else {
-    // display.fillScreen(GxEPD_WHITE);
-    // clearEntireDisplay();
-    // prepareInfoBar();
-    // drawGraph();
-    // getMachineInput();
-    // nonBlockingDelayStart = millis();
-    // nonBlockingDelayDuration = 5000;
-    // mrBeansTurn = true;
+    Serial.println((double)(millis() - timeSinceSetupFinished) / (double)1000);
+    updateValuesInDisplay((double)(millis() - timeSinceSetupFinished) /
+                          (double)1000);
+    nonBlockingDelayStart = millis();
+    nonBlockingDelayDuration = 5000;
   }
-
-  // goToSleep();
-  // }
   ArduinoOTA.handle();
 }
