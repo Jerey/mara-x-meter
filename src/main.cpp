@@ -77,10 +77,15 @@ constexpr const int16_t heightInfoBar = y0GraphArea;
 constexpr const int16_t yTextInfoBar = 5;
 
 SoftwareSerial mySerial(D4, D6); // D6 - RX on Machine , D4 - TX on Machine
-Timer shotTimer;
 Timer updateGraphTimer;
 unsigned long serialUpdateMillis = 0;
 unsigned long timeSinceSetupFinished = 0;
+unsigned long pumpStartedTime = 0;
+unsigned long pumpStoppedTime =
+    0; //!< Handle the 1/0 values from the pump. If longer than 500 ms, the pump
+       //!< probably is off.
+bool pumpRunning = false;
+unsigned long shotTimerUpdateDelay = 0;
 
 /**
  * Function to connect to a wifi. It waits until a connection is established.
@@ -193,6 +198,8 @@ void setSteamTemperature(unsigned int currentSteamTemp,
 void setShotTimer(unsigned int timerValueInS) {
   constexpr int16_t x0Timer = xShotTimer + 2;
   constexpr int16_t y0Timer = yTextInfoBar + heightInfoBar / 2;
+  display.fillRect(xShotTimer + 1, yTextInfoBar + 9, widthShotTimer - 2,
+                   heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
   display.setFont(&FreeSerif9pt7b);
   display.setCursor(x0Timer, y0Timer);
   char *output = (char *)malloc(100 * sizeof(char));
@@ -361,7 +368,7 @@ void setup() {
   prepareTemperatureDrawingArea();
 
   // TODO: Pump Pin -> Add docu or so.
-  pinMode(D0, INPUT_PULLUP);
+  pinMode(D0, INPUT_PULLDOWN_16);
 
   mySerial.begin(9600);
   memset(receivedChars, 0, numChars);
@@ -376,21 +383,12 @@ void updateValuesInDisplay(unsigned int currentTimeInSeconds) {
 
   unsigned int currentSteamTemp = 0;
   while (result != NULL) {
-    // C1.23
-    // 113
-    // 112
-    // 091
-    // 0000
-    // 0
     switch (currentValue) {
     case 0:
       break;
     case 1:
       // Steam temp in C
-      Serial.print("STEAM TEMP: ");
-      Serial.println(atoi(result));
       currentSteamTemp = atoi(result);
-
       break;
     case 2:
       // Target Steam temp in C
@@ -413,6 +411,29 @@ void updateValuesInDisplay(unsigned int currentTimeInSeconds) {
   }
 }
 
+void handlePump() {
+  // Pump running, timer not yet
+  if (!pumpRunning && !digitalRead(D0)) {
+    pumpStartedTime = millis();
+    pumpRunning = true;
+    Serial.println("Pump started -> Starting shot timer");
+  }
+  // Pump not running, timer running --> Wait for 500ms to be on the safe side.
+  if (pumpRunning && digitalRead(D0)) {
+    if (pumpStoppedTime == 0) {
+      pumpStoppedTime = millis();
+    }
+    if (millis() - pumpStoppedTime > 1500) {
+      pumpRunning = false;
+      pumpStoppedTime = 0;
+      display.invertDisplay(false);
+      Serial.println("Pump stoped -> Stoping shot timer");
+    }
+  } else {
+    pumpStoppedTime = 0;
+  }
+}
+
 void loop() {
   getMachineInput();
   if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
@@ -420,7 +441,13 @@ void loop() {
     updateValuesInDisplay((double)(millis() - timeSinceSetupFinished) /
                           (double)1000);
     nonBlockingDelayStart = millis();
-    nonBlockingDelayDuration = 5000;
+    nonBlockingDelayDuration = 1000;
+  }
+
+  handlePump();
+  if (pumpRunning && (millis() - shotTimerUpdateDelay) > 1000) {
+    shotTimerUpdateDelay = millis();
+    setShotTimer((millis() - pumpStartedTime) / 1000);
   }
   ArduinoOTA.handle();
 }
