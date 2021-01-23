@@ -9,8 +9,11 @@
 #include <Fonts/FreeMonoBold24pt7b.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeSerif18pt7b.h>
+#include <Fonts/FreeSerif9pt7b.h>
 #include <GxIO/GxIO.h>
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
+#include <SoftwareSerial.h>
+#include <Timer.h>
 #include <WiFiManager.h>
 #include <vector>
 
@@ -73,6 +76,10 @@ constexpr const int16_t widthShotTimer = 100;
 constexpr const int16_t heightInfoBar = y0GraphArea;
 constexpr const int16_t yTextInfoBar = 5;
 
+SoftwareSerial mySerial(D4, D6); // D6 - RX on Machine , D4 - TX on Machine
+Timer shotTimer;
+long serialUpdateMillis = 0;
+
 /**
  * Function to connect to a wifi. It waits until a connection is established.
  */
@@ -81,6 +88,9 @@ void connectToWifi() {
   wifiManager.setBreakAfterConfig(true);
   wifiManager.autoConnect(ssidAP, passwordAP);
 }
+
+const byte numChars = 32;
+char receivedChars[numChars];
 
 void setup() {
   Serial.begin(115200);
@@ -123,6 +133,12 @@ void setup() {
   display.init(115200); // enable diagnostic output on Serial
 
   Serial.println("setup done");
+
+  mySerial.begin(9600);
+  memset(receivedChars, 0, numChars);
+  Serial.print("Request initial serial update: ");
+  Serial.println(mySerial.availableForWrite());
+  mySerial.write(0x11);
 }
 
 void clearEntireDisplay() {
@@ -193,12 +209,41 @@ void setHeatingStatus(bool heatingOn) {
 void setHXTemperature(unsigned int currentHXTemp, unsigned int targetHXTemp) {
   constexpr int16_t x0HxTemp = xHXInfo + 2;
   constexpr int16_t y0HxTemp = yTextInfoBar + heightInfoBar / 2;
+  display.setFont(&FreeSerif9pt7b);
   display.setCursor(x0HxTemp, y0HxTemp);
   char *output = (char *)malloc(100 * sizeof(char));
   sprintf(output, "%3d/%3d", currentHXTemp, targetHXTemp);
   display.print(output);
   display.updateWindow(xHXInfo, 0, widthHXInfo, heightInfoBar);
   free(output);
+  display.setFont(nullptr);
+}
+
+void setSteamTemperature(unsigned int currentSteamTemp,
+                         unsigned int targetSteamTemp) {
+  constexpr int16_t x0SteamTemp = xSteamInfo + 2;
+  constexpr int16_t y0SteamTemp = yTextInfoBar + heightInfoBar / 2;
+  display.setFont(&FreeSerif9pt7b);
+  display.setCursor(x0SteamTemp, y0SteamTemp);
+  char *output = (char *)malloc(100 * sizeof(char));
+  sprintf(output, "%3d/%3d", currentSteamTemp, targetSteamTemp);
+  display.print(output);
+  display.updateWindow(xSteamInfo, 0, widthSteamInfo, heightInfoBar);
+  free(output);
+  display.setFont(nullptr);
+}
+
+void setShotTimer(unsigned int timerValueInS) {
+  constexpr int16_t x0Timer = xShotTimer + 2;
+  constexpr int16_t y0Timer = yTextInfoBar + heightInfoBar / 2;
+  display.setFont(&FreeSerif9pt7b);
+  display.setCursor(x0Timer, y0Timer);
+  char *output = (char *)malloc(100 * sizeof(char));
+  sprintf(output, "%d", timerValueInS);
+  display.print(output);
+  display.updateWindow(xShotTimer, 0, widthShotTimer, heightInfoBar);
+  free(output);
+  display.setFont(nullptr);
 }
 
 void prepareInfoBar() {
@@ -220,6 +265,8 @@ void prepareInfoBar() {
 
   setHeatingStatus(rand() % 2);
   setHXTemperature(rand() % 140, rand() % 140);
+  setSteamTemperature(rand() % 140, rand() % 140);
+  setShotTimer(rand() % 1800);
 }
 
 void prepareTemperatureDrawingArea() {
@@ -280,26 +327,57 @@ void goToSleep() {
   nonBlockingDelayDuration = 10000;
 }
 
+char rc;
+char endMarker = '\n';
+static byte ndx = 0;
+void getMachineInput() {
+  while (mySerial.available()) {
+    serialUpdateMillis = millis();
+    rc = mySerial.read();
+
+    if (rc != endMarker) {
+      receivedChars[ndx] = rc;
+      ndx++;
+      if (ndx >= numChars) {
+        ndx = numChars - 1;
+      }
+    } else {
+      receivedChars[ndx] = '\0';
+      ndx = 0;
+      Serial.println(receivedChars);
+    }
+  }
+
+  if (millis() - serialUpdateMillis > 5000) {
+    serialUpdateMillis = millis();
+    memset(receivedChars, 0, numChars);
+    Serial.print("Request serial update: ");
+    Serial.println(mySerial.availableForWrite());
+    mySerial.write(0x11);
+  }
+}
+
 void loop() {
   if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
-    if (mrBeansTurn) {
-      display.fillScreen(GxEPD_WHITE);
-      clearEntireDisplay();
-      drawRandomBootScreen();
-      nonBlockingDelayStart = millis();
-      nonBlockingDelayDuration = 1000;
-      mrBeansTurn = false;
-    } else {
-      display.fillScreen(GxEPD_WHITE);
-      clearEntireDisplay();
-      prepareInfoBar();
-      drawGraph();
-      nonBlockingDelayStart = millis();
-      nonBlockingDelayDuration = 10000;
-      mrBeansTurn = true;
-    }
-
-    // goToSleep();
+    // if (mrBeansTurn) {
+    //   display.fillScreen(GxEPD_WHITE);
+    //   clearEntireDisplay();
+    //   drawRandomBootScreen();
+    //   nonBlockingDelayStart = millis();
+    //   nonBlockingDelayDuration = 1000;
+    //   mrBeansTurn = false;
+    // } else {
+    // display.fillScreen(GxEPD_WHITE);
+    // clearEntireDisplay();
+    // prepareInfoBar();
+    // drawGraph();
+    // getMachineInput();
+    // nonBlockingDelayStart = millis();
+    // nonBlockingDelayDuration = 5000;
+    // mrBeansTurn = true;
   }
+
+  // goToSleep();
+  // }
   ArduinoOTA.handle();
 }
