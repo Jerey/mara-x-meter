@@ -87,6 +87,11 @@ unsigned long pumpStoppedTime =
 bool pumpRunning = false;
 unsigned long shotTimerUpdateDelay = 0;
 
+unsigned long displayOffDelay = 10000;
+unsigned long displayOffStartTime = 0;
+
+bool displayWentToSleep = false;
+
 /**
  * Function to connect to a wifi. It waits until a connection is established.
  */
@@ -288,8 +293,7 @@ void drawRandomBootScreen() {
 void goToSleep() {
   clearEntireDisplay();
   display.powerDown();
-  nonBlockingDelayStart = millis();
-  nonBlockingDelayDuration = 10000;
+  displayWentToSleep = true;
 }
 
 char rc;
@@ -429,6 +433,7 @@ void handlePump() {
       pumpStoppedTime = 0;
       display.invertDisplay(false);
       Serial.println("Pump stoped -> Stoping shot timer");
+      displayOffStartTime = millis();
     }
   } else {
     pumpStoppedTime = 0;
@@ -438,17 +443,21 @@ void handlePump() {
 void loop() {
   getMachineInput();
   handlePump();
-  if (pumpRunning && (millis() - shotTimerUpdateDelay) > 1000) {
-    shotTimerUpdateDelay = millis();
-    setShotTimer((millis() - pumpStartedTime) / 1000);
+  if (!displayWentToSleep && (displayOffStartTime != 0) &&
+      (millis() - displayOffStartTime) > displayOffDelay) {
+    goToSleep();
+  } else {
+    if (pumpRunning && (millis() - shotTimerUpdateDelay) > 1000) {
+      shotTimerUpdateDelay = millis();
+      setShotTimer((millis() - pumpStartedTime) / 1000);
+    }
+    if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
+      updateValuesInDisplay((double)(millis() - timeSinceSetupFinished) /
+                            (double)1000);
+      nonBlockingDelayStart = millis();
+      nonBlockingDelayDuration = 1000;
+      display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
+    }
   }
-  if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
-    updateValuesInDisplay((double)(millis() - timeSinceSetupFinished) /
-                          (double)1000);
-    nonBlockingDelayStart = millis();
-    nonBlockingDelayDuration = 1000;
-    display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
-  }
-
   ArduinoOTA.handle();
 }
