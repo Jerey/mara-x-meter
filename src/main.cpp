@@ -119,8 +119,9 @@ unsigned int getYForTemp(unsigned int temperature) {
   } else {
     // Lower end - Pxl/°C + y0 offset - temp offset  (NOTE: Inverse calculation)
     yPosPixel = yLastGraphArea -
-                (double)heightGraphArea /
-                    (double)(maxTempInCel - minTempInCel) * temperature +
+                static_cast<float>(heightGraphArea) /
+                    static_cast<float>(maxTempInCel - minTempInCel) *
+                    temperature +
                 y0GraphArea - minTempInCel;
   }
   return yPosPixel;
@@ -133,8 +134,9 @@ void drawLine(unsigned int timeInSeconds, unsigned int temperature) {
   if (timeInSeconds >= maxTimeInMin * 60) {
     xPosPixel = xLastGraphArea;
   } else {
-    xPosPixel = (double)widthGraphArea / (double)maxTimeInMin *
-                    ((double)timeInSeconds / (double)60) +
+    xPosPixel = static_cast<float>(widthGraphArea) /
+                    static_cast<float>(maxTimeInMin) *
+                    (static_cast<float>(timeInSeconds) / 60.0) +
                 x0GraphArea;
   }
 
@@ -427,19 +429,20 @@ void handlePump() {
 void loop() {
   getMachineInput();
   handlePump();
+  const auto currentMillis = millis();
   if (!displayWentToSleep && (pumpRunningTime > 10000) &&
       (displayOffStartTime != 0) &&
-      (millis() - displayOffStartTime) > displayOffDelay) {
+      (currentMillis - displayOffStartTime) > displayOffDelay) {
     goToSleep();
   } else {
-    if (pumpRunning && (millis() - shotTimerUpdateDelay) > 1000) {
-      shotTimerUpdateDelay = millis();
-      setShotTimer((millis() - pumpStartedTime) / 1000);
+    if (pumpRunning && (currentMillis - shotTimerUpdateDelay) > 1000) {
+      shotTimerUpdateDelay = currentMillis;
+      setShotTimer((currentMillis - pumpStartedTime) / 1000);
     }
-    if ((millis() - nonBlockingDelayStart) > nonBlockingDelayDuration) {
-      updateValuesInDisplay((double)(millis() - timeSinceSetupFinished) /
-                            (double)1000);
-      nonBlockingDelayStart = millis();
+    if ((currentMillis - nonBlockingDelayStart) > nonBlockingDelayDuration) {
+      updateValuesInDisplay(
+          static_cast<float>(currentMillis - timeSinceSetupFinished) / 1000.0);
+      nonBlockingDelayStart = currentMillis;
       nonBlockingDelayDuration = 1000;
       display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
     }
