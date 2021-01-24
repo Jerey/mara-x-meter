@@ -66,14 +66,13 @@ constexpr const int16_t widthShotTimer = 100;
 constexpr const int16_t heightInfoBar = y0GraphArea;
 constexpr const int16_t yTextInfoBar = 5;
 
-SoftwareSerial mySerial(D4, D6); // D6 - RX on Machine , D4 - TX on Machine
-const byte numChars = 32;
-char receivedChars[numChars];
-char rc;
-constexpr char endMarker = '\n';
-static byte ndx = 0;
+//----------- MaraXSerial -----------
+SoftwareSerial maraXSerial(D4, D6); // D6 - RX on Machine , D4 - TX on Machine
+const byte nrMaraXChars = 32;
+char currentMaraXString[nrMaraXChars];
+char currentMaraXChar;
 unsigned long serialUpdateMillis = 0;
-unsigned long timeSinceSetupFinished = 0;
+unsigned long timePointSetupFinished = 0;
 
 /**
  * Handle the 1/0 values from the pump. If longer than X ms, the pump probably
@@ -273,29 +272,30 @@ void goToSleep() {
 }
 
 void getMachineInput() {
-  while (mySerial.available()) {
+  static byte currentIndex = 0;
+  while (maraXSerial.available()) {
     serialUpdateMillis = millis();
-    rc = mySerial.read();
+    currentMaraXChar = maraXSerial.read();
 
-    if (rc != endMarker) {
-      receivedChars[ndx] = rc;
-      ndx++;
-      if (ndx >= numChars) {
-        ndx = numChars - 1;
+    if (currentMaraXChar != '\n') {
+      currentMaraXString[currentIndex] = currentMaraXChar;
+      currentIndex++;
+      if (currentIndex >= nrMaraXChars) {
+        currentIndex = nrMaraXChars - 1;
       }
     } else {
-      receivedChars[ndx] = '\0';
-      ndx = 0;
-      Serial.println(receivedChars);
+      currentMaraXString[currentIndex] = '\0';
+      currentIndex = 0;
+      Serial.println(currentMaraXString);
     }
   }
 
   if (millis() - serialUpdateMillis > 5000) {
     serialUpdateMillis = millis();
-    memset(receivedChars, 0, numChars);
+    memset(currentMaraXString, 0, nrMaraXChars);
     Serial.print("Request serial update: ");
-    Serial.println(mySerial.availableForWrite());
-    mySerial.write(0x11);
+    Serial.println(maraXSerial.availableForWrite());
+    maraXSerial.write(0x11);
   }
 }
 
@@ -345,12 +345,11 @@ void setupDisplay() {
 }
 
 void setupMaraXCommunication() {
-  mySerial.begin(9600);
-  memset(receivedChars, 0, numChars);
+  maraXSerial.begin(9600);
+  memset(currentMaraXString, 0, nrMaraXChars);
   Serial.print("Request initial serial update: ");
-  Serial.println(mySerial.availableForWrite());
-  mySerial.write(0x11);
-  timeSinceSetupFinished = millis();
+  Serial.println(maraXSerial.availableForWrite());
+  maraXSerial.write(0x11);
 }
 
 void setup() {
@@ -364,10 +363,12 @@ void setup() {
 
   pinMode(reedSensorPin, INPUT_PULLDOWN_16);
   setupMaraXCommunication();
+  timePointSetupFinished = millis();
 }
+
 void updateValuesInDisplay(unsigned int currentTimeInSeconds) {
   unsigned int currentValue = 0;
-  auto result = strtok(receivedChars, ",");
+  auto result = strtok(currentMaraXString, ",");
 
   unsigned int currentSteamTemp = 0;
   while (result != NULL) {
@@ -442,7 +443,7 @@ void loop() {
     }
     if ((currentMillis - lastDisplayUpdate) > displayUpdateFrequency) {
       updateValuesInDisplay(
-          static_cast<float>(currentMillis - timeSinceSetupFinished) / 1000.0);
+          static_cast<float>(currentMillis - timePointSetupFinished) / 1000.0);
       lastDisplayUpdate = currentMillis;
       display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
     }
