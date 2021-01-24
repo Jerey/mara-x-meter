@@ -51,8 +51,8 @@ constexpr const char *hostName = "MaraXMonitor";
 constexpr const char *ssidAP = "AutoConnectAP";
 constexpr const char *passwordAP = "password";
 
-unsigned long nonBlockingDelayStart;
-unsigned long nonBlockingDelayDuration;
+unsigned long lastDisplayUpdate;
+unsigned long displayUpdateFrequency = 1000; //(ms)
 
 //----------- InfoBar -----------
 constexpr const int16_t xHeatingOnInfo = 0;
@@ -435,15 +435,15 @@ void loop() {
       (currentMillis - displayOffStartTime) > displayOffDelay) {
     goToSleep();
   } else {
+    // Set the shottimer only every second.
     if (pumpRunning && (currentMillis - shotTimerUpdateDelay) > 1000) {
       shotTimerUpdateDelay = currentMillis;
       setShotTimer((currentMillis - pumpStartedTime) / 1000);
     }
-    if ((currentMillis - nonBlockingDelayStart) > nonBlockingDelayDuration) {
+    if ((currentMillis - lastDisplayUpdate) > displayUpdateFrequency) {
       updateValuesInDisplay(
           static_cast<float>(currentMillis - timeSinceSetupFinished) / 1000.0);
-      nonBlockingDelayStart = currentMillis;
-      nonBlockingDelayDuration = 1000;
+      lastDisplayUpdate = currentMillis;
       display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
     }
   }
