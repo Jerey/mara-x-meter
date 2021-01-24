@@ -8,6 +8,7 @@
 #include <Fonts/FreeMonoBold18pt7b.h>
 #include <Fonts/FreeMonoBold24pt7b.h>
 #include <Fonts/FreeMonoBold9pt7b.h>
+#include <Fonts/FreeSerif12pt7b.h>
 #include <Fonts/FreeSerif18pt7b.h>
 #include <Fonts/FreeSerif9pt7b.h>
 #include <GxIO/GxIO.h>
@@ -84,6 +85,7 @@ unsigned long pumpStartedTime = 0;
 unsigned long pumpStoppedTime =
     0; //!< Handle the 1/0 values from the pump. If longer than 500 ms, the pump
        //!< probably is off.
+unsigned long pumpRunningTime = 0;
 bool pumpRunning = false;
 unsigned long shotTimerUpdateDelay = 0;
 
@@ -175,7 +177,7 @@ void setHXTemperature(unsigned int currentHXTemp) {
   constexpr int16_t y0HxTemp = yTextInfoBar + heightInfoBar / 2;
   display.fillRect(xHXInfo + 1, yTextInfoBar + 9, widthHXInfo - 2,
                    heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
-  display.setFont(&FreeSerif9pt7b);
+  display.setFont(&FreeSerif12pt7b);
   display.setCursor(x0HxTemp, y0HxTemp);
   char *output = (char *)malloc(100 * sizeof(char));
   sprintf(output, "%3d", currentHXTemp);
@@ -191,7 +193,7 @@ void setSteamTemperature(unsigned int currentSteamTemp,
   constexpr int16_t y0SteamTemp = yTextInfoBar + heightInfoBar / 2;
   display.fillRect(xSteamInfo + 1, yTextInfoBar + 9, widthSteamInfo - 2,
                    heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
-  display.setFont(&FreeSerif9pt7b);
+  display.setFont(&FreeSerif12pt7b);
   display.setCursor(x0SteamTemp, y0SteamTemp);
   char *output = (char *)malloc(100 * sizeof(char));
   sprintf(output, "%3d/%3d", currentSteamTemp, targetSteamTemp);
@@ -206,7 +208,7 @@ void setShotTimer(unsigned int timerValueInS) {
   constexpr int16_t y0Timer = yTextInfoBar + heightInfoBar / 2;
   display.fillRect(xShotTimer + 1, yTextInfoBar + 9, widthShotTimer - 2,
                    heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
-  display.setFont(&FreeSerif9pt7b);
+  display.setFont(&FreeSerif12pt7b);
   display.setCursor(x0Timer, y0Timer);
   char *output = (char *)malloc(100 * sizeof(char));
   sprintf(output, "%d", timerValueInS);
@@ -394,6 +396,7 @@ void updateValuesInDisplay(unsigned int currentTimeInSeconds) {
     case 1:
       // Steam temp in C
       currentSteamTemp = atoi(result);
+      drawLine(currentTimeInSeconds, currentSteamTemp);
       break;
     case 2:
       // Target Steam temp in C
@@ -434,6 +437,7 @@ void handlePump() {
       display.invertDisplay(false);
       Serial.println("Pump stoped -> Stoping shot timer");
       displayOffStartTime = millis();
+      pumpRunningTime = millis() - pumpStartedTime;
     }
   } else {
     pumpStoppedTime = 0;
@@ -443,7 +447,8 @@ void handlePump() {
 void loop() {
   getMachineInput();
   handlePump();
-  if (!displayWentToSleep && (displayOffStartTime != 0) &&
+  if (!displayWentToSleep && (pumpRunningTime > 10000) &&
+      (displayOffStartTime != 0) &&
       (millis() - displayOffStartTime) > displayOffDelay) {
     goToSleep();
   } else {
