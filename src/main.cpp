@@ -1,7 +1,7 @@
 #include "bitmap.h"
 #include <ArduinoOTA.h>
 #include <GxEPD.h>
-#include <GxGDEW042T2/GxGDEW042T2.h> // 4.2" b/w
+#include <GxGDEW042T2/GxGDEW042T2.h>  // 4.2" b/w
 
 #include <Fonts/FreeSerif12pt7b.h>
 #include <GxIO/GxIO.h>
@@ -10,18 +10,14 @@
 #include <WiFiManager.h>
 
 #ifdef D1MINI
-GxIO_Class io(SPI, /*CS=D8*/ SS, /*DC=D3*/ 0,
-              /*RST=D1*/ 5); // arbitrary selection of D3(=0), D4(=2), selected
-                             // for default of GxEPD_Class
-GxEPD_Class display(io, /*RST=D1*/ 5,
-                    /*BUSY=D2*/ 4); // default selection of D4(=2), D2(=4)
+GxIO_Class io(SPI, /*CS=D8*/ SS, /*DC=D3*/ 0, /*RST=D1*/ 5);  // arbitrary selection of D3(=0), D4(=2), selected
+                                                              // for default of GxEPD_Class
+GxEPD_Class display(io, /*RST=D1*/ 5, /*BUSY=D2*/ 4);         // default selection of D4(=2), D2(=4)
 #endif
 #ifdef NODEMCU
-GxIO_Class io(SPI, /*CS=D8*/ /*SS*/ 5, /*DC=D3*/ 0,
-              /*RST=D4*/ 12); // arbitrary selection of D3(=0), D4(=2), selected
-                              // for default of GxEPD_Class
-GxEPD_Class display(io, /*RST=D4*/ 12,
-                    /*BUSY=D2*/ 4); // default selection of D4(=2), D2(=4)
+GxIO_Class io(SPI, /*CS=D8*/ /*SS*/ 5, /*DC=D3*/ 0, /*RST=D4*/ 12);  // arbitrary selection of D3(=0), D4(=2), selected
+                                                                     // for default of GxEPD_Class
+GxEPD_Class display(io, /*RST=D4*/ 12, /*BUSY=D2*/ 4);               // default selection of D4(=2), D2(=4)
 #endif
 
 // 30 min auf 360 Pixel breite xFirst = 20
@@ -41,8 +37,7 @@ constexpr unsigned int maxTempInCel = 140;
 constexpr unsigned int minTempInCel = 20;
 // Draw a line every 20° C --> 40, 60, 80, 100, 120
 constexpr unsigned int nrOfHorizontalLines = 5;
-constexpr unsigned int distanceBetweenHorizontalLines =
-    ((maxTempInCel - minTempInCel) / (nrOfHorizontalLines + 1));
+constexpr unsigned int distanceBetweenHorizontalLines = ((maxTempInCel - minTempInCel) / (nrOfHorizontalLines + 1));
 
 //----------- Hostname -----------
 constexpr const char *hostName = "MaraXMonitor";
@@ -52,7 +47,7 @@ constexpr const char *ssidAP = "AutoConnectAP";
 constexpr const char *passwordAP = "password";
 
 unsigned long lastDisplayUpdate;
-unsigned long displayUpdateFrequency = 1000; //(ms)
+unsigned long displayUpdateFrequency = 1000;  //(ms)
 
 //----------- InfoBar -----------
 constexpr const int16_t xHeatingOnInfo = 0;
@@ -67,7 +62,7 @@ constexpr const int16_t heightInfoBar = y0GraphArea;
 constexpr const int16_t yTextInfoBar = 5;
 
 //----------- MaraXSerial -----------
-SoftwareSerial maraXSerial(D4, D6); // D6 - RX on Machine , D4 - TX on Machine
+SoftwareSerial maraXSerial(D4, D6);  // D6 - RX on Machine , D4 - TX on Machine
 const byte nrMaraXChars = 32;
 char currentMaraXString[nrMaraXChars];
 char currentMaraXChar;
@@ -75,25 +70,45 @@ unsigned long serialUpdateMillis = 0;
 unsigned long timePointSetupFinished = 0;
 
 /**
- * Handle the 1/0 values from the pump. If longer than X ms, the pump probably
- * is off.
+ * Handle the 1/0 values from the pump. If longer than X ms, the pump probably is off.
  */
 unsigned long pumpStoppedTime = 0;
+
+/**
+ * Stores, how long the pump has been running. This is used, to only switch off the display after a long enough period.
+ */
 unsigned long pumpRunningTime = 0;
 bool pumpRunning = false;
 unsigned long shotTimerUpdateDelay = 0;
 unsigned long pumpStartedTime = 0;
 constexpr const uint8_t reedSensorPin = D0;
+
 /**
  * The reed sensor receives 0's and 1's when the pump is running.
- * This time defines, how long 1's (pump not running) have to be received, until
- * the shot timer is stopped.
+ * This time defines, how long 1's (pump not running) have to be received, until the shot timer is stopped.
  */
 constexpr const unsigned long thresholdPumpNoLongerRunning = 1500;
 
-unsigned long displayOffDelay = 10000;
+/**
+ * Time until the display shall be switched off, if the shot timer ran long enough.
+ */
+constexpr unsigned long displayOffDelay = 10000;
+
+/**
+ * As soon as the pump has been switched off, the timepoint is stored to  automatically switch off the display after
+ * @see displayOffDelay.
+ */
 unsigned long displayOffStartTime = 0;
 
+/**
+ * Switch the display only off, if the shot timer ran at least 15 s.
+ * The pump sometimes runs up to 10s, so it can happen, that the display is automatically switch off.
+ */
+constexpr unsigned long minShotTimerForDisplayOff = 15000;
+
+/**
+ * Indicates, whether the display has already been switched off.
+ */
 bool displayWentToSleep = false;
 
 /**
@@ -105,11 +120,21 @@ void connectToWifi() {
   wifiManager.autoConnect(ssidAP, passwordAP);
 }
 
+/**
+ * @brief Erases the entire display.
+ */
 void clearEntireDisplay() {
   display.eraseDisplay(false);
   display.eraseDisplay(true);
 }
 
+/**
+ * @brief Helper function to get the Y position of a temperature within the graph.
+ *
+ * @param temperature The temperature, for which the y position shall be
+ * evaluated.
+ * @return The y pixel position on the display.
+ */
 unsigned int getYForTemp(unsigned int temperature) {
   int16_t yPosPixel = yLastGraphArea;
   if (temperature <= minTempInCel) {
@@ -118,23 +143,26 @@ unsigned int getYForTemp(unsigned int temperature) {
   } else {
     // Lower end - Pxl/°C + y0 offset - temp offset  (NOTE: Inverse calculation)
     yPosPixel = yLastGraphArea -
-                static_cast<float>(heightGraphArea) /
-                    static_cast<float>(maxTempInCel - minTempInCel) *
-                    temperature +
+                static_cast<float>(heightGraphArea) / static_cast<float>(maxTempInCel - minTempInCel) * temperature +
                 y0GraphArea - minTempInCel;
   }
   return yPosPixel;
 }
 
-void drawLine(unsigned int timeInSeconds, unsigned int temperature) {
+/**
+ * @brief Helper function to draw a pixel within the graph.
+ *
+ * @param timeInSeconds The time point, when that temperature was active.
+ * @param temperature The temperature.
+ */
+void drawPixelInGraph(unsigned int timeInSeconds, unsigned int temperature) {
   const int16_t yPosPixel = getYForTemp(temperature);
 
   int16_t xPosPixel = x0GraphArea;
   if (timeInSeconds >= maxTimeInMin * 60) {
     xPosPixel = xLastGraphArea;
   } else {
-    xPosPixel = static_cast<float>(widthGraphArea) /
-                    static_cast<float>(maxTimeInMin) *
+    xPosPixel = static_cast<float>(widthGraphArea) / static_cast<float>(maxTimeInMin) *
                     (static_cast<float>(timeInSeconds) / 60.0) +
                 x0GraphArea;
   }
@@ -151,28 +179,31 @@ void drawLine(unsigned int timeInSeconds, unsigned int temperature) {
   display.writePixel(xPosPixel, yPosPixel, GxEPD_BLACK);
 }
 
+/**
+ * @brief Updates the symbol indicating, whether the heating is on or not.
+ */
 void setHeatingStatus(bool heatingOn) {
   constexpr int16_t y0HeatingStatusBox = heightInfoBar / 4;
   constexpr int16_t heightStatusBox = heightInfoBar / 2;
   constexpr int16_t widthStatusBox = widthHeatingOnInfo / 2;
-  constexpr int16_t x0HeatingStatusBox =
-      xHeatingOnInfo + widthHeatingOnInfo / 4;
+  constexpr int16_t x0HeatingStatusBox = xHeatingOnInfo + widthHeatingOnInfo / 4;
   if (heatingOn) {
-    display.fillRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
-                     heightStatusBox, GxEPD_BLACK);
+    display.fillRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox, heightStatusBox, GxEPD_BLACK);
   } else {
-    display.fillRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
-                     heightStatusBox, GxEPD_WHITE);
-    display.drawRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox,
-                     heightStatusBox, GxEPD_BLACK);
+    display.fillRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox, heightStatusBox, GxEPD_WHITE);
+    display.drawRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox, heightStatusBox, GxEPD_BLACK);
   }
 }
 
+/**
+ * @brief Updates the text in the hx (heat exchanger) info bar box.
+ *
+ * @param currentHXTemp The current hx temp received by the mara x.
+ */
 void setHXTemperature(unsigned int currentHXTemp) {
   constexpr int16_t x0HxTemp = xHXInfo + 2;
   constexpr int16_t y0HxTemp = yTextInfoBar + heightInfoBar / 2;
-  display.fillRect(xHXInfo + 1, yTextInfoBar + 9, widthHXInfo - 2,
-                   heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
+  display.fillRect(xHXInfo + 1, yTextInfoBar + 9, widthHXInfo - 2, heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
   display.setFont(&FreeSerif12pt7b);
   display.setCursor(x0HxTemp, y0HxTemp);
   char *output = (char *)malloc(100 * sizeof(char));
@@ -182,12 +213,17 @@ void setHXTemperature(unsigned int currentHXTemp) {
   display.setFont(nullptr);
 }
 
-void setSteamTemperature(unsigned int currentSteamTemp,
-                         unsigned int targetSteamTemp) {
+/**
+ * @brief Updates the text in the steam info bar box.
+ *
+ * @param currentSteamTemp The current steam temp received by the mara x.
+ * @param targetSteamTemp The target steam temp received by the mara x.
+ */
+void setSteamTemperature(unsigned int currentSteamTemp, unsigned int targetSteamTemp) {
   constexpr int16_t x0SteamTemp = xSteamInfo + 2;
   constexpr int16_t y0SteamTemp = yTextInfoBar + heightInfoBar / 2;
-  display.fillRect(xSteamInfo + 1, yTextInfoBar + 9, widthSteamInfo - 2,
-                   heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
+  display.fillRect(xSteamInfo + 1, yTextInfoBar + 9, widthSteamInfo - 2, heightInfoBar - 2 - yTextInfoBar - 9,
+                   GxEPD_WHITE);
   display.setFont(&FreeSerif12pt7b);
   display.setCursor(x0SteamTemp, y0SteamTemp);
   char *output = (char *)malloc(100 * sizeof(char));
@@ -197,11 +233,16 @@ void setSteamTemperature(unsigned int currentSteamTemp,
   display.setFont(nullptr);
 }
 
+/**
+ * @brief Updates the text in the shot timer info bar box.
+ *
+ * @param timerValueInS The current shot timer value in seconds.
+ */
 void setShotTimer(unsigned int timerValueInS) {
   constexpr int16_t x0Timer = xShotTimer + 2;
   constexpr int16_t y0Timer = yTextInfoBar + heightInfoBar / 2;
-  display.fillRect(xShotTimer + 1, yTextInfoBar + 9, widthShotTimer - 2,
-                   heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
+  display.fillRect(xShotTimer + 1, yTextInfoBar + 9, widthShotTimer - 2, heightInfoBar - 2 - yTextInfoBar - 9,
+                   GxEPD_WHITE);
   display.setFont(&FreeSerif12pt7b);
   display.setCursor(x0Timer, y0Timer);
   char *output = (char *)malloc(100 * sizeof(char));
@@ -211,6 +252,9 @@ void setShotTimer(unsigned int timerValueInS) {
   display.setFont(nullptr);
 }
 
+/**
+ * @brief Creates the static parts of the info bar.
+ */
 void prepareInfoBar() {
   display.setTextColor(GxEPD_BLACK);
   display.setCursor(xHeatingOnInfo + 2, yTextInfoBar);
@@ -221,13 +265,15 @@ void prepareInfoBar() {
   display.println("Steam");
   display.setCursor(xShotTimer + 2, yTextInfoBar);
   display.println("Timer");
-  display.drawRect(xHeatingOnInfo, 0, widthHeatingOnInfo, heightInfoBar,
-                   GxEPD_BLACK);
+  display.drawRect(xHeatingOnInfo, 0, widthHeatingOnInfo, heightInfoBar, GxEPD_BLACK);
   display.drawRect(xHXInfo, 0, widthHXInfo, heightInfoBar, GxEPD_BLACK);
   display.drawRect(xSteamInfo, 0, widthSteamInfo, heightInfoBar, GxEPD_BLACK);
   display.drawRect(xShotTimer, 0, widthShotTimer, heightInfoBar, GxEPD_BLACK);
 }
 
+/**
+ * @brief Prepares the graph area and adds the labels.
+ */
 void prepareTemperatureDrawingArea() {
   // Text:
   display.setTextColor(GxEPD_BLACK);
@@ -239,38 +285,38 @@ void prepareTemperatureDrawingArea() {
   display.update();
 
   for (unsigned int i = 1; i <= nrOfHorizontalLines; ++i) {
-    const unsigned int yHorizontal =
-        getYForTemp(i * distanceBetweenHorizontalLines + minTempInCel);
-    display.drawLine(x0GraphArea, yHorizontal, xLastGraphArea, yHorizontal,
-                     GxEPD_BLACK);
+    const unsigned int yHorizontal = getYForTemp(i * distanceBetweenHorizontalLines + minTempInCel);
+    display.drawLine(x0GraphArea, yHorizontal, xLastGraphArea, yHorizontal, GxEPD_BLACK);
     display.setCursor(1, yHorizontal);
     display.println(i * distanceBetweenHorizontalLines + minTempInCel);
   }
 
-  display.drawRoundRect(x0GraphArea, y0GraphArea, widthGraphArea,
-                        heightGraphArea, 10, GxEPD_BLACK);
+  display.drawRoundRect(x0GraphArea, y0GraphArea, widthGraphArea, heightGraphArea, 10, GxEPD_BLACK);
 }
 
+/**
+ * @brief Draws a picture of mr bean while setting up.
+ */
 void drawRandomBootScreen() {
   switch (rand() % 3) {
-  case 0:
-    display.drawPicture(MrBeanFromBottomRight, sizeof(MrBeanFromBottomRight));
-    break;
-  case 1:
-    display.drawPicture(MrBeanAnticipated, sizeof(MrBeanAnticipated));
-    break;
-  case 2:
-    display.drawPicture(MrBeanSurprised, sizeof(MrBeanSurprised));
-    break;
+    case 0: display.drawPicture(MrBeanFromBottomRight, sizeof(MrBeanFromBottomRight)); break;
+    case 1: display.drawPicture(MrBeanAnticipated, sizeof(MrBeanAnticipated)); break;
+    case 2: display.drawPicture(MrBeanSurprised, sizeof(MrBeanSurprised)); break;
   }
 }
 
+/**
+ * The display has to be switched off properly to avoid pixel burn.
+ */
 void goToSleep() {
   clearEntireDisplay();
   display.powerDown();
   displayWentToSleep = true;
 }
 
+/**
+ * @brief Evaluates and stores the current mara x input.
+ */
 void getMachineInput() {
   static byte currentIndex = 0;
   while (maraXSerial.available()) {
@@ -299,20 +345,22 @@ void getMachineInput() {
   }
 }
 
+/**
+ * @brief Prepares the OTA updates.
+ */
 void setupOTA() {
   ArduinoOTA.setHostname(hostName);
   ArduinoOTA.onStart([]() {
     String type;
     if (ArduinoOTA.getCommand() == U_FLASH) {
       type = "sketch";
-    } else { // U_FS
+    } else {  // U_FS
       type = "filesystem";
     }
   });
   ArduinoOTA.onEnd([]() { Serial.println("\nEnd"); });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
+  ArduinoOTA.onProgress(
+      [](unsigned int progress, unsigned int total) { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); });
   ArduinoOTA.onError([](ota_error_t error) {
     Serial.printf("Error[%u]: ", error);
     if (error == OTA_AUTH_ERROR) {
@@ -333,8 +381,11 @@ void setupOTA() {
   Serial.println(WiFi.localIP());
 }
 
+/**
+ * @brief Shows a boot screen and draws all boxes and labels, which are present at any time.
+ */
 void setupDisplay() {
-  display.init(115200); // enable diagnostic output on Serial
+  display.init(115200);  // enable diagnostic output on Serial
   display.fillScreen(GxEPD_WHITE);
   clearEntireDisplay();
   drawRandomBootScreen();
@@ -344,6 +395,9 @@ void setupDisplay() {
   prepareTemperatureDrawingArea();
 }
 
+/**
+ * @brief Opens up the serial communication to the mara x.
+ */
 void setupMaraXCommunication() {
   maraXSerial.begin(9600);
   memset(currentMaraXString, 0, nrMaraXChars);
@@ -354,8 +408,6 @@ void setupMaraXCommunication() {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println();
-  Serial.println("setup");
 
   connectToWifi();
   setupOTA();
@@ -366,38 +418,42 @@ void setup() {
   timePointSetupFinished = millis();
 }
 
-void updateValuesInDisplay(unsigned int currentTimeInSeconds) {
-  unsigned int currentValue = 0;
+/**
+ * @brief Extracts and updates all values received from the mara x.
+ *
+ * @param currentTimeInSeconds The elapsed time since the tracking was started.
+ * It is used in the graph as X axis.
+ */
+void updateMaraXValuesInDisplay(unsigned int currentTimeInSeconds) {
+  unsigned int currentValueIndex = 0;
   auto result = strtok(currentMaraXString, ",");
 
   unsigned int currentSteamTemp = 0;
   while (result != NULL) {
-    switch (currentValue) {
-    case 0:
-      break;
-    case 1:
-      // Steam temp in C
-      currentSteamTemp = atoi(result);
-      drawLine(currentTimeInSeconds, currentSteamTemp);
-      break;
-    case 2:
-      // Target Steam temp in C
-      setSteamTemperature(currentSteamTemp, atoi(result));
-      break;
-    case 3:
-      // HX temp in C
-      setHXTemperature(atoi(result));
-      drawLine(currentTimeInSeconds, atoi(result));
-      break;
-    case 5:
-      // Heating On Off
-      setHeatingStatus(atoi(result));
-      break;
-    default:
-      break;
+    switch (currentValueIndex) {
+      case 0: break;
+      case 1:
+        // Steam temp in C
+        currentSteamTemp = atoi(result);
+        drawPixelInGraph(currentTimeInSeconds, currentSteamTemp);
+        break;
+      case 2:
+        // Target Steam temp in C
+        setSteamTemperature(currentSteamTemp, atoi(result));
+        break;
+      case 3:
+        // HX temp in C
+        setHXTemperature(atoi(result));
+        drawPixelInGraph(currentTimeInSeconds, atoi(result));
+        break;
+      case 5:
+        // Heating On Off
+        setHeatingStatus(atoi(result));
+        break;
+      default: break;
     }
     result = strtok(NULL, ",");
-    currentValue++;
+    currentValueIndex++;
   }
 }
 
@@ -427,26 +483,39 @@ void handlePump() {
   }
 }
 
+bool hasShotBeenPulled(const unsigned long &currentMillis) {
+  return (!displayWentToSleep && (pumpRunningTime > minShotTimerForDisplayOff) && (displayOffStartTime != 0) &&
+          (currentMillis - displayOffStartTime) > displayOffDelay);
+}
+
+void handlShotTimer(const unsigned long &currentMillis) {
+  // Set the shottimer only every second.
+  if (pumpRunning && (currentMillis - shotTimerUpdateDelay) > 1000) {
+    shotTimerUpdateDelay = currentMillis;
+    setShotTimer((currentMillis - pumpStartedTime) / 1000);
+  }
+}
+
+/**
+ * @brief Writes and updates the values in the display
+ */
+void handleDisplayUpdate(const unsigned long &currentMillis) {
+  if ((currentMillis - lastDisplayUpdate) > displayUpdateFrequency) {
+    updateMaraXValuesInDisplay(static_cast<float>(currentMillis - timePointSetupFinished) / 1000.0);
+    lastDisplayUpdate = currentMillis;
+    display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
+  }
+}
+
 void loop() {
   getMachineInput();
   handlePump();
   const auto currentMillis = millis();
-  if (!displayWentToSleep && (pumpRunningTime > 10000) &&
-      (displayOffStartTime != 0) &&
-      (currentMillis - displayOffStartTime) > displayOffDelay) {
+  if (hasShotBeenPulled(currentMillis)) {
     goToSleep();
   } else {
-    // Set the shottimer only every second.
-    if (pumpRunning && (currentMillis - shotTimerUpdateDelay) > 1000) {
-      shotTimerUpdateDelay = currentMillis;
-      setShotTimer((currentMillis - pumpStartedTime) / 1000);
-    }
-    if ((currentMillis - lastDisplayUpdate) > displayUpdateFrequency) {
-      updateValuesInDisplay(
-          static_cast<float>(currentMillis - timePointSetupFinished) / 1000.0);
-      lastDisplayUpdate = currentMillis;
-      display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT);
-    }
+    handlShotTimer(currentMillis);
+    handleDisplayUpdate(currentMillis);
   }
   ArduinoOTA.handle();
 }
