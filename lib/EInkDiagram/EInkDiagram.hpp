@@ -12,19 +12,11 @@
 class EInkDiagram {
  public:
   EInkDiagram();
-  /**
-   * @brief Erases the entire display.
-   */
-  void clearEntireDisplay();
 
   /**
-   * @brief Helper function to get the Y position of a temperature within the graph.
-   *
-   * @param temperature The temperature, for which the y position shall be
-   * evaluated.
-   * @return The y pixel position on the display.
+   * @brief Shows a boot screen and draws all boxes and labels, which are present at any time.
    */
-  unsigned int getYForTemp(unsigned int temperature);
+  void setupDisplay();
 
   /**
    * @brief Helper function to draw a pixel within the graph.
@@ -55,6 +47,48 @@ class EInkDiagram {
   void setSteamTemperature(unsigned int currentSteamTemp, unsigned int targetSteamTemp);
 
   /**
+   * The display has to be switched off properly to avoid pixel burn.
+   */
+  void goToSleep();
+
+  /**
+   * To avoid pixel burn, the display will go to sleep when no longer needed.
+   */
+  bool isDisplayAwake();
+
+  /**
+   * @brief Updates the shot timer.
+   *
+   * @param pumpRunning Only update the shot timer, if the pump is still running.
+   * @param currentMillis What is the current millis (time point).
+   * @param pumpStartedTime When was the pump last started.
+   */
+  void handleShotTimer(bool pumpRunning, const unsigned long &currentMillis, const unsigned long &pumpStartedTime);
+
+  /**
+   * @brief Refresh all values in the window.
+   *
+   * This has to be called whenever a value, that has been set, shall be visible.
+   * The display is not automatically updated, as it is rather slow.
+   */
+  void updateWindow();
+
+ private:
+  /**
+   * @brief Erases the entire display.
+   */
+  void clearEntireDisplay();
+
+  /**
+   * @brief Helper function to get the Y position of a temperature within the graph.
+   *
+   * @param temperature The temperature, for which the y position shall be
+   * evaluated.
+   * @return The y pixel position on the display.
+   */
+  unsigned int getYForTemp(unsigned int temperature);
+
+  /**
    * @brief Updates the text in the shot timer info bar box.
    *
    * @param timerValueInS The current shot timer value in seconds.
@@ -76,22 +110,6 @@ class EInkDiagram {
    */
   void drawRandomBootScreen();
 
-  /**
-   * The display has to be switched off properly to avoid pixel burn.
-   */
-  void goToSleep();
-
-  bool isDisplayAwake();
-
-  /**
-   * @brief Shows a boot screen and draws all boxes and labels, which are present at any time.
-   */
-  void setupDisplay();
-  void handleShotTimer(bool pumpRunning, const unsigned long &currentMillis, const unsigned long &pumpStartedTime);
-
-  void updateWindow();
-
- private:
   GxIO_Class io;
   GxEPD_Class display;
 
