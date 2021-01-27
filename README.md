@@ -31,3 +31,34 @@ New
 GxIO_Class io(SPI, /*CS=D8*/ SS, /*DC=D3*/ 0, /*RST=D1*/ 5); // arbitrary selection of D3(=0), D4(=2), selected for default of GxEPD_Class
 GxEPD_Class display(io, /*RST=D1*/ 5, /*BUSY=D2*/ 4); // default selection of D4(=2), D2(=4)
 ```
+
+#### Schematic
+
+![Schematic of the mara x meter](/documentation/mara-x-meter.svg)
+
+//<img src="/documentation/mara-x-meter.svg" width="400">
+
+// BUSY -> D2,
+// Busy Lila
+Passt
+// RST -> D1,
+// Rst Weiß
+Passt
+// DC -> D3,
+// DC Grün
+Passt
+// CS -> D8,
+// CS Orange
+Passt
+// CLK -> D5,
+// CLK Geld
+Passt
+// DIN -> D7,
+// DIN Blau
+Passt
+// GND -> GND,
+// GND Braun
+Passt
+// 3.3V -> 3.3V
+// VCC Grau
+Passt
