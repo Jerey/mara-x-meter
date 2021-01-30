@@ -1,4 +1,4 @@
-#include <EInkDiagram.hpp>
+#include <EInkHelper.hpp>
 #include <Fonts/FreeSerif12pt7b.h>
 
 #ifdef D1MINI
@@ -9,7 +9,7 @@ constexpr const uint8_t rstPin = 5;
 constexpr const uint8_t csPin = 5;
 constexpr const uint8_t rstPin = 12;
 #endif
-EInkDiagram::EInkDiagram()
+EInkHelper::EInkHelper()
     : io(SPI, /*CS=D8*/ csPin, /*DC=D3*/ 0, /*RST=D1*/ rstPin),
       display(io, /*RST=D1*/ 5, /*BUSY=D2*/ 4),
       x0GraphArea{ 20 },
@@ -36,11 +36,11 @@ EInkDiagram::EInkDiagram()
       shotTimerUpdateDelay{ 0 },
       displayWentToSleep{ false } {}
 
-void EInkDiagram::clearEntireDisplay() {
+void EInkHelper::clearEntireDisplay() {
   display.eraseDisplay(false);
   display.eraseDisplay(true);
 }
-unsigned int EInkDiagram::getYForTemp(unsigned int temperature) {
+unsigned int EInkHelper::getYForTemp(unsigned int temperature) {
   int16_t yPosPixel = yLastGraphArea;
   if (temperature <= minTempInCel) {
   } else if (temperature >= maxTempInCel) {
@@ -53,7 +53,7 @@ unsigned int EInkDiagram::getYForTemp(unsigned int temperature) {
   }
   return yPosPixel;
 }
-void EInkDiagram::drawPixelInGraph(unsigned int timeInSeconds, unsigned int temperature) {
+void EInkHelper::drawPixelInGraph(unsigned int timeInSeconds, unsigned int temperature) {
   const int16_t yPosPixel = getYForTemp(temperature);
 
   int16_t xPosPixel = x0GraphArea;
@@ -67,7 +67,7 @@ void EInkDiagram::drawPixelInGraph(unsigned int timeInSeconds, unsigned int temp
 
   display.writePixel(xPosPixel, yPosPixel, GxEPD_BLACK);
 }
-void EInkDiagram::setHeatingStatus(bool heatingOn) {
+void EInkHelper::setHeatingStatus(bool heatingOn) {
   int16_t y0HeatingStatusBox = heightInfoBar / 4;
   int16_t heightStatusBox = heightInfoBar / 2;
   int16_t widthStatusBox = widthHeatingOnInfo / 2;
@@ -79,7 +79,7 @@ void EInkDiagram::setHeatingStatus(bool heatingOn) {
     display.drawRect(x0HeatingStatusBox, y0HeatingStatusBox, widthStatusBox, heightStatusBox, GxEPD_BLACK);
   }
 }
-void EInkDiagram::setHXTemperature(unsigned int currentHXTemp) {
+void EInkHelper::setHXTemperature(unsigned int currentHXTemp) {
   int16_t x0HxTemp = xHXInfo + 2;
   int16_t y0HxTemp = yTextInfoBar + heightInfoBar / 2;
   display.fillRect(xHXInfo + 1, yTextInfoBar + 9, widthHXInfo - 2, heightInfoBar - 2 - yTextInfoBar - 9, GxEPD_WHITE);
@@ -91,7 +91,7 @@ void EInkDiagram::setHXTemperature(unsigned int currentHXTemp) {
   free(output);
   display.setFont(nullptr);
 }
-void EInkDiagram::setSteamTemperature(unsigned int currentSteamTemp, unsigned int targetSteamTemp) {
+void EInkHelper::setSteamTemperature(unsigned int currentSteamTemp, unsigned int targetSteamTemp) {
   int16_t x0SteamTemp = xSteamInfo + 2;
   int16_t y0SteamTemp = yTextInfoBar + heightInfoBar / 2;
   display.fillRect(xSteamInfo + 1, yTextInfoBar + 9, widthSteamInfo - 2, heightInfoBar - 2 - yTextInfoBar - 9,
@@ -104,7 +104,7 @@ void EInkDiagram::setSteamTemperature(unsigned int currentSteamTemp, unsigned in
   free(output);
   display.setFont(nullptr);
 }
-void EInkDiagram::setShotTimer(unsigned int timerValueInS) {
+void EInkHelper::setShotTimer(unsigned int timerValueInS) {
   int16_t x0Timer = xShotTimer + 2;
   int16_t y0Timer = yTextInfoBar + heightInfoBar / 2;
   display.fillRect(xShotTimer + 1, yTextInfoBar + 9, widthShotTimer - 2, heightInfoBar - 2 - yTextInfoBar - 9,
@@ -117,7 +117,7 @@ void EInkDiagram::setShotTimer(unsigned int timerValueInS) {
   free(output);
   display.setFont(nullptr);
 }
-void EInkDiagram::prepareInfoBar() {
+void EInkHelper::prepareInfoBar() {
   display.setTextColor(GxEPD_BLACK);
   display.setCursor(xHeatingOnInfo + 2, yTextInfoBar);
   display.println("Heating");
@@ -132,7 +132,7 @@ void EInkDiagram::prepareInfoBar() {
   display.drawRect(xSteamInfo, 0, widthSteamInfo, heightInfoBar, GxEPD_BLACK);
   display.drawRect(xShotTimer, 0, widthShotTimer, heightInfoBar, GxEPD_BLACK);
 }
-void EInkDiagram::prepareTemperatureDrawingArea() {
+void EInkHelper::prepareTemperatureDrawingArea() {
   // Text:
   display.setTextColor(GxEPD_BLACK);
   display.setCursor(1, y0GraphArea);
@@ -151,20 +151,20 @@ void EInkDiagram::prepareTemperatureDrawingArea() {
 
   display.drawRoundRect(x0GraphArea, y0GraphArea, widthGraphArea, heightGraphArea, 10, GxEPD_BLACK);
 }
-void EInkDiagram::drawRandomBootScreen() {
+void EInkHelper::drawRandomBootScreen() {
   switch (rand() % 3) {
     case 0: display.drawPicture(MrBeanFromBottomRight, sizeof(MrBeanFromBottomRight)); break;
     case 1: display.drawPicture(MrBeanAnticipated, sizeof(MrBeanAnticipated)); break;
     case 2: display.drawPicture(MrBeanSurprised, sizeof(MrBeanSurprised)); break;
   }
 }
-void EInkDiagram::goToSleep() {
+void EInkHelper::goToSleep() {
   clearEntireDisplay();
   display.powerDown();
   displayWentToSleep = true;
 }
-bool EInkDiagram::isDisplayAwake() { return !displayWentToSleep; }
-void EInkDiagram::setupDisplay() {
+bool EInkHelper::isDisplayAwake() { return !displayWentToSleep; }
+void EInkHelper::setupDisplay() {
   display.init(115200);  // enable diagnostic output on Serial
   display.fillScreen(GxEPD_WHITE);
   clearEntireDisplay();
@@ -174,12 +174,12 @@ void EInkDiagram::setupDisplay() {
   prepareInfoBar();
   prepareTemperatureDrawingArea();
 }
-void EInkDiagram::handleShotTimer(bool pumpRunning, const unsigned long &currentMillis,
-                                  const unsigned long &pumpStartedTime) {
+void EInkHelper::handleShotTimer(bool pumpRunning, const unsigned long &currentMillis,
+                                 const unsigned long &pumpStartedTime) {
   // Set the shottimer only every second.
   if (pumpRunning && (currentMillis - shotTimerUpdateDelay) > 1000) {
     shotTimerUpdateDelay = currentMillis;
     setShotTimer((currentMillis - pumpStartedTime) / 1000);
   }
 }
-void EInkDiagram::updateWindow() { display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT); }
+void EInkHelper::updateWindow() { display.updateWindow(0, 0, GxGDEW042T2_WIDTH, GxGDEW042T2_HEIGHT); }

@@ -9,9 +9,9 @@
 #include <bitmap.h>
 #include <stdint.h>
 
-class EInkDiagram {
+class EInkHelper {
  public:
-  EInkDiagram();
+  EInkHelper();
 
   /**
    * @brief Shows a boot screen and draws all boxes and labels, which are present at any time.

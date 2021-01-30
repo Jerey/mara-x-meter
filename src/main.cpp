@@ -1,7 +1,7 @@
 
 #include <ArduinoOTA.h>
 
-#include <EInkDiagram.hpp>
+#include <EInkHelper.hpp>
 #include <SoftwareSerial.h>
 #include <WiFiManager.h>
 
@@ -13,7 +13,7 @@ constexpr const char *ssidAP = "AutoConnectAP";
 constexpr const char *passwordAP = "password";
 
 //----------- EInk Diagramm Helper -----------
-EInkDiagram eInkDiagram;
+EInkHelper eInkHelper;
 unsigned long lastDisplayUpdate;
 unsigned long displayUpdateFrequency = 1000;  //(ms)
 
@@ -154,7 +154,7 @@ void setup() {
 
   connectToWifi();
   setupOTA();
-  eInkDiagram.setupDisplay();
+  eInkHelper.setupDisplay();
 
   pinMode(reedSensorPin, INPUT_PULLDOWN_16);
   setupMaraXCommunication();
@@ -178,20 +178,20 @@ void updateMaraXValuesInDisplay(unsigned int currentTimeInSeconds) {
       case 1:
         // Steam temp in C
         currentSteamTemp = atoi(result);
-        eInkDiagram.drawPixelInGraph(currentTimeInSeconds, currentSteamTemp);
+        eInkHelper.drawPixelInGraph(currentTimeInSeconds, currentSteamTemp);
         break;
       case 2:
         // Target Steam temp in C
-        eInkDiagram.setSteamTemperature(currentSteamTemp, atoi(result));
+        eInkHelper.setSteamTemperature(currentSteamTemp, atoi(result));
         break;
       case 3:
         // HX temp in C
-        eInkDiagram.setHXTemperature(atoi(result));
-        eInkDiagram.drawPixelInGraph(currentTimeInSeconds, atoi(result));
+        eInkHelper.setHXTemperature(atoi(result));
+        eInkHelper.drawPixelInGraph(currentTimeInSeconds, atoi(result));
         break;
       case 5:
         // Heating On Off
-        eInkDiagram.setHeatingStatus(atoi(result));
+        eInkHelper.setHeatingStatus(atoi(result));
         break;
       default: break;
     }
@@ -227,7 +227,7 @@ void handlePump() {
 }
 
 bool hasShotBeenPulled(const unsigned long &currentMillis) {
-  return (eInkDiagram.isDisplayAwake() && (pumpRunningTime > minShotTimerForDisplayOff) && (displayOffStartTime != 0) &&
+  return (eInkHelper.isDisplayAwake() && (pumpRunningTime > minShotTimerForDisplayOff) && (displayOffStartTime != 0) &&
           (currentMillis - displayOffStartTime) > displayOffDelay);
 }
 /**
@@ -237,7 +237,7 @@ void handleDisplayUpdate(const unsigned long &currentMillis) {
   if ((currentMillis - lastDisplayUpdate) > displayUpdateFrequency) {
     updateMaraXValuesInDisplay(static_cast<float>(currentMillis - timePointSetupFinished) / 1000.0);
     lastDisplayUpdate = currentMillis;
-    eInkDiagram.updateWindow();
+    eInkHelper.updateWindow();
   }
 }
 
@@ -246,9 +246,9 @@ void loop() {
   handlePump();
   const auto currentMillis = millis();
   if (hasShotBeenPulled(currentMillis)) {
-    eInkDiagram.goToSleep();
+    eInkHelper.goToSleep();
   } else {
-    eInkDiagram.handleShotTimer(pumpRunning, currentMillis, pumpStartedTime);
+    eInkHelper.handleShotTimer(pumpRunning, currentMillis, pumpStartedTime);
     handleDisplayUpdate(currentMillis);
   }
   ArduinoOTA.handle();
