@@ -2,12 +2,8 @@
 #include <GxEPD.h>
 #include <GxGDEW042T2/GxGDEW042T2.h>  // 4.2" b/w
 
-#include "Arduino.h"
-
 #include <GxIO/GxIO.h>
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
-#include <bootscreen.h>
-#include <stdint.h>
 
 class EInkHelper {
  public:

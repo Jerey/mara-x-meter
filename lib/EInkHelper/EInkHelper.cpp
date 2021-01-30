@@ -1,5 +1,8 @@
+#include "Arduino.h"
 #include <EInkHelper.hpp>
 #include <Fonts/FreeSerif12pt7b.h>
+#include <bootscreen.h>
+#include <stdint.h>
 
 #ifdef D1MINI
 constexpr const uint8_t csPin = SS;
