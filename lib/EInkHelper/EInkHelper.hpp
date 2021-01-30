@@ -6,7 +6,7 @@
 
 #include <GxIO/GxIO.h>
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
-#include <bitmap.h>
+#include <bootscreen.h>
 #include <stdint.h>
 
 class EInkHelper {
