@@ -41,13 +41,19 @@ Here is a picture to know, what to connect where at the mara x:
 
 <img src="/documentation/CloseupMaraXConnector.png" width="700">
 
-Here another picture from further away:
+Here another picture further away:
 
 <img src="/documentation/MaraXBottom.png" width="700">
 
 | In case I somehow messed up the pin numbering for the RX and TX, and you do not get any values, try to swap the D4 and D6.
 
 The reed sensor is glued onto the vibration pump. Ensure, that you can read 0's and 1's while activating the pump from the reed sensor. I had to look for a good position to receive any values.
+
+### Flashing
+
+Initially you will have to flash the software to the D1 mini via usb. Then on the next start, the D1 mini will open up an access point. The password and the ssid name can be found in the code. After connecting to the D1 mini, a wifi configuration page will pop up and you can connect the D1 mini to your wifi. From then on, the D1 mini will automatically connect to your wifi, if available, and you can flash over the air.
+
+The project is built with [platform io](https://docs.platformio.org/en/latest/core/index.html). You can find installation information there.
 
 ## Further ideas
 
