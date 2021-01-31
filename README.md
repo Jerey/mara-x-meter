@@ -37,83 +37,31 @@ Following you can see a schematic for the wiring. It is setup for a D1 mini, but
 
 ![Schematic of the mara x meter](/documentation/mara-x-meter.svg)
 
-Here is a picture to know, what to connect where:
+Here is a picture to know, what to connect where at the mara x:
 
-<!-- ![Connection from the bottom](/documentation/CloseupMaraXConnector.png) -->
 <img src="/documentation/CloseupMaraXConnector.png" width="700">
 
 Here another picture from further away:
 
-<!-- ![Bottom of the mara-x](/documentation/MaraXBottom.png) -->
 <img src="/documentation/MaraXBottom.png" width="700">
 
-| In case I somehow messed up the pin numbering for the RX and TX, and you get bad values only, please try to swap the pins.
+| In case I somehow messed up the pin numbering for the RX and TX, and you do not get any values, try to swap the D4 and D6.
+
+The reed sensor is glued onto the vibration pump. Ensure, that you can read 0's and 1's while activating the pump from the reed sensor. I had to look for a good position to receive any values.
 
 ## Further ideas
 
+This project has several parts, which can be extended. Here are some ideas, I might extend one day, but for now I am happy with the current state and will build a case for the display and d1 mini.
+
 ### Shot timer from pump switch
 
-### Mqtt, nodered, grafana and influxdb
+The reed sensor alters between 1's and 0's while the pump is running. Therefore one has to wait for a certain time, until the pump off is certain. Further, the pump sometimes is activated by the machine itself to exchange the water in the HX.
 
-## Changes to the pins compared to original:
+To get a more precise shot timer, one could check, whether it is possible to listen to the shot lever directly.
 
-### NodeMCU:
+### Mqtt, NodeRed, Grafana and InfluxDB
 
-Old
+Since I already have a Mqtt, NodeRed, Grafana and an InfluxDB up and running, it would be rather straight forward to publish the data via the network and visualize it in Grafana. This could be useful in a few cases:
 
-`BUSY -> GPIO4, RST -> GPIO2, DC -> GPIO0, CS -> GPIO15, CLK -> GPIO14, DIN -> GPIO13, GND -> GND, 3.3V -> 3.3V`
-
-New
-
-`BUSY -> GPIO4/D2, RST -> GPIO12/D6, DC -> GPIO0/D3, CS -> GPIO5/D1, CLK -> GPIO14/D5, DIN -> GPIO13/D7, GND -> GND, 3.3V -> 3.3V`
-
-```cpp
-GxIO_Class io(SPI, /*CS=D8*/ /*SS*/5, /*DC=D3*/ 0, /*RST=D4*/ 12); // arbitrary selection of D3(=0), D4(=2), selected for default of GxEPD_Class
-GxEPD_Class display(io, /*RST=D4*/ 12, /*BUSY=D2*/ 4); // default selection of D4(=2), D2(=4)
-```
-
-### D1 Mini V3
-
-Old
-
-`BUSY -> D2, RST -> D4, DC -> D3, CS -> D8, CLK -> D5, DIN -> D7, GND -> GND, 3.3V -> 3.3V`
-
-New
-
-`BUSY -> D2, RST -> D1, DC -> D3, CS -> D8, CLK -> D5, DIN -> D7, GND -> GND, 3.3V -> 3.3V`
-
-```cpp
-GxIO_Class io(SPI, /*CS=D8*/ SS, /*DC=D3*/ 0, /*RST=D1*/ 5); // arbitrary selection of D3(=0), D4(=2), selected for default of GxEPD_Class
-GxEPD_Class display(io, /*RST=D1*/ 5, /*BUSY=D2*/ 4); // default selection of D4(=2), D2(=4)
-```
-
-#### Schematic
-
-![Schematic of the mara x meter](/documentation/mara-x-meter.svg)
-
-//<img src="/documentation/mara-x-meter.svg" width="400">
-
-// BUSY -> D2,
-// Busy Lila
-Passt
-// RST -> D1,
-// Rst Weiß
-Passt
-// DC -> D3,
-// DC Grün
-Passt
-// CS -> D8,
-// CS Orange
-Passt
-// CLK -> D5,
-// CLK Geld
-Passt
-// DIN -> D7,
-// DIN Blau
-Passt
-// GND -> GND,
-// GND Braun
-Passt
-// 3.3V -> 3.3V
-// VCC Grau
-Passt
+- By publishing the data, one could configure a notification, when a certain HX temperature has been reached and been stable for a given time.
+- One could automatically create a table to rate the shots. The given HX temperature with the shot timer could be used as reference.
