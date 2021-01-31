@@ -22,9 +22,11 @@ Since I wanted the shot timer and the graphs, I decided to create my own project
 
 Similar to my [coffee grinder automation](https://github.com/Jerey/coffee-automation), I again chose an D1 mini as basis for this project. It is used to read the data from the espresso machine and visualize it on the display. Because of that, you can connect to it via wifi, and therefore flash it over the air (OTA).
 
-Here you can see a sample video taken while the mara-x was heating up again:
+Here you can see a sample video taken while the mara-x was heating up.
 
 ![](/documentation/SampleHeatup.gif)
+
+> This video was taken over the course of 30 minutes. Further the machine was already a bit heated up from a previous shot.
 
 ## Setup
 
@@ -49,7 +51,7 @@ Here another picture further away:
 
 <img src="/documentation/MaraXBottom.png" width="700">
 
-| In case I somehow messed up the pin numbering for the RX and TX, and you do not get any values, try to swap the D4 and D6.
+> In case I somehow messed up the pin numbering for the RX and TX, and you do not get any values, try to swap the D4 and D6.
 
 The reed sensor is glued onto the vibration pump. Ensure, that you can read 0's and 1's while activating the pump from the reed sensor. I had to look for a good position to receive any values.
 
