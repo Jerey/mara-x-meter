@@ -18,6 +18,41 @@ Some inspiration for this project:
 
 Since I wanted the shot timer and the graphs, I decided to create my own project. To reduce the visual impact on the looks of the espresso machine, I decided to go with an e-ink display.
 
+## Solution
+
+Similar to my [coffee grinder automation](https://github.com/Jerey/coffee-automation), I again chose an D1 mini as basis for this project. It is used to read the data from the espresso machine and visualize it on the display. Because of that, you can connect to it via wifi, and therefore flash it over the air (OTA).
+
+## Setup
+
+To build this project, following parts are needed:
+
+- D1 mini (or a similar ESP device such as the node mcu)
+- A reed sensor
+- An e ink display (I chose the Waveshare 4.2 module with two colors)
+- A mara x
+
+### Wiring
+
+Following you can see a schematic for the wiring. It is setup for a D1 mini, but can also be adapted for any other ESP device.
+
+![Schematic of the mara x meter](/documentation/mara-x-meter.svg)
+
+Here is a picture to know, what to connect where:
+
+![Connection from the bottom](/documentation/CloseupMaraXConnector.HEIC)
+
+Here another picture from further away:
+
+![Bottom of the mara-x](/documentation/MaraXBottom.HEIC)
+
+| In case I somehow messed up the pin numbering for the RX and TX, and you get bad values only, please try to swap the pins.
+
+## Further ideas
+
+### Shot timer from pump switch
+
+### Mqtt, nodered, grafana and influxdb
+
 ## Changes to the pins compared to original:
 
 ### NodeMCU:
