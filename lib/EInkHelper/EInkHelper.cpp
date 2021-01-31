@@ -5,12 +5,12 @@
 #include <stdint.h>
 
 #ifdef D1MINI
-constexpr const uint8_t csPin = SS;
-constexpr const uint8_t rstPin = 5;
+constexpr uint8_t csPin = SS;
+constexpr uint8_t rstPin = 5;
 #endif
 #ifdef NODEMCU
-constexpr const uint8_t csPin = 5;
-constexpr const uint8_t rstPin = 12;
+constexpr uint8_t csPin = 5;
+constexpr uint8_t rstPin = 12;
 #endif
 EInkHelper::EInkHelper()
     : io(SPI, /*CS=D8*/ csPin, /*DC=D3*/ 0, /*RST=D1*/ rstPin),

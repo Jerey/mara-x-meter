@@ -6,22 +6,21 @@
 #include <WiFiManager.h>
 
 //----------- Hostname -----------
-constexpr const char *hostName = "MaraXMonitor";
+constexpr char *hostName = "MaraXMonitor";
 
 //----------- AP -----------
-constexpr const char *ssidAP = "AutoConnectAP";
-constexpr const char *passwordAP = "password";
+constexpr char *ssidAP = "AutoConnectAP";
+constexpr char *passwordAP = "password";
 
 //----------- EInk Diagramm Helper -----------
 EInkHelper eInkHelper;
 unsigned long lastDisplayUpdate;
-unsigned long displayUpdateFrequency = 1000;  //(ms)
+constexpr unsigned long displayUpdateFrequency = 1000;  //(ms)
 
 //----------- MaraXSerial -----------
 SoftwareSerial maraXSerial(D4, D6);  // D6 - RX on Machine , D4 - TX on Machine
-const byte nrMaraXChars = 32;
+constexpr byte nrMaraXChars = 32;
 char currentMaraXString[nrMaraXChars];
-char currentMaraXChar;
 unsigned long serialUpdateMillis = 0;
 unsigned long timePointSetupFinished = 0;
 
@@ -37,13 +36,13 @@ unsigned long pumpRunningTime = 0;
 bool pumpRunning = false;
 
 unsigned long pumpStartedTime = 0;
-constexpr const uint8_t reedSensorPin = D0;
+constexpr uint8_t reedSensorPin = D0;
 
 /**
  * The reed sensor receives 0's and 1's when the pump is running.
  * This time defines, how long 1's (pump not running) have to be received, until the shot timer is stopped.
  */
-constexpr const unsigned long thresholdPumpNoLongerRunning = 1500;
+constexpr unsigned long thresholdPumpNoLongerRunning = 1500;
 
 /**
  * Time until the display shall be switched off, if the shot timer ran long enough.
@@ -75,10 +74,10 @@ void connectToWifi() {
  * @brief Evaluates and stores the current mara x input.
  */
 void getMachineInput() {
-  static byte currentIndex = 0;
+  byte currentIndex = 0;
   while (maraXSerial.available()) {
     serialUpdateMillis = millis();
-    currentMaraXChar = maraXSerial.read();
+    char currentMaraXChar = maraXSerial.read();
 
     if (currentMaraXChar != '\n') {
       currentMaraXString[currentIndex] = currentMaraXChar;
@@ -186,8 +185,9 @@ void updateMaraXValuesInDisplay(unsigned int currentTimeInSeconds) {
         break;
       case 3:
         // HX temp in C
-        eInkHelper.setHXTemperature(atoi(result));
-        eInkHelper.drawPixelInGraph(currentTimeInSeconds, atoi(result));
+        auto hxTemperature = atoi(result);
+        eInkHelper.setHXTemperature(hxTemperature);
+        eInkHelper.drawPixelInGraph(currentTimeInSeconds, hxTemperature);
         break;
       case 5:
         // Heating On Off
