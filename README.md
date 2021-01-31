@@ -39,11 +39,11 @@ Following you can see a schematic for the wiring. It is setup for a D1 mini, but
 
 Here is a picture to know, what to connect where:
 
-![Connection from the bottom](/documentation/CloseupMaraXConnector.HEIC)
+![Connection from the bottom](/documentation/CloseupMaraXConnector.png)
 
 Here another picture from further away:
 
-![Bottom of the mara-x](/documentation/MaraXBottom.HEIC)
+![Bottom of the mara-x](/documentation/MaraXBottom.png)
 
 | In case I somehow messed up the pin numbering for the RX and TX, and you get bad values only, please try to swap the pins.
 
