@@ -24,7 +24,7 @@ Similar to my [coffee grinder automation](https://github.com/Jerey/coffee-automa
 
 Here you can see a sample video taken while the mara-x was heating up again:
 
-![](/documentation/SampleHeatup.webm)
+![](/documentation/SampleHeatup.gif)
 
 ## Setup
 
