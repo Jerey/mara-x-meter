@@ -12,8 +12,8 @@ Since the machine enables access to the current heat exchanger temperature(among
 
 Some inspiration for this project:
 
-- [Lelit Insider](https://www.youtube.com/watch?v=9NL6yeq7sMM): This is probably the origin of most mara x modifications including the data extraction. It shows how the connection to the mara x can be done with a laptop.
-- [This reddit post](https://www.reddit.com/r/espresso/comments/hft5zv/data_visualisation_lelit_marax_mod/) shows how a mara x owner extracts the data, stores it to a database and visualizes it.
+- [Lelit Insider](https://www.youtube.com/watch?v=9NL6yeq7sMM): This is probably the origin of most mara-x modifications including the data extraction. It shows how the connection to the mara-x can be done with a laptop.
+- [This reddit post](https://www.reddit.com/r/espresso/comments/hft5zv/data_visualisation_lelit_marax_mod/) shows how a mara-x owner extracts the data, stores it to a database and visualizes it.
 - [Another github repository](https://github.com/alexrus/marax_timer) shows how the data is visualized on an oled display and also includes, how the shot timer is triggered by extracting the pump running state.
 
 Since I wanted the shot timer and the graphs, I decided to create my own project. To reduce the visual impact on the looks of the espresso machine, I decided to go with an e-ink display.
@@ -22,6 +22,10 @@ Since I wanted the shot timer and the graphs, I decided to create my own project
 
 Similar to my [coffee grinder automation](https://github.com/Jerey/coffee-automation), I again chose an D1 mini as basis for this project. It is used to read the data from the espresso machine and visualize it on the display. Because of that, you can connect to it via wifi, and therefore flash it over the air (OTA).
 
+Here you can see a sample video taken while the mara-x was heating up again:
+
+![](/documentation/SampleHeatup.webm)
+
 ## Setup
 
 To build this project, following parts are needed:
@@ -29,15 +33,15 @@ To build this project, following parts are needed:
 - D1 mini (or a similar ESP device such as the node mcu)
 - A reed sensor
 - An e ink display (I chose the Waveshare 4.2 module with two colors)
-- A mara x
+- A mara-x
 
 ### Wiring
 
 Following you can see a schematic for the wiring. It is setup for a D1 mini, but can also be adapted for any other ESP device.
 
-![Schematic of the mara x meter](/documentation/mara-x-meter.svg)
+![Schematic of the mara-x meter](/documentation/mara-x-meter.svg)
 
-Here is a picture to know, what to connect where at the mara x:
+Here is a picture to know, what to connect where at the mara-x:
 
 <img src="/documentation/CloseupMaraXConnector.png" width="700">
 

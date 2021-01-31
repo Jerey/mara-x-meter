@@ -6,11 +6,11 @@
 #include <WiFiManager.h>
 
 //----------- Hostname -----------
-constexpr char *hostName = "MaraXMonitor";
+constexpr const char *hostName = "MaraXMonitor";
 
 //----------- AP -----------
-constexpr char *ssidAP = "AutoConnectAP";
-constexpr char *passwordAP = "password";
+constexpr const char *ssidAP = "AutoConnectAP";
+constexpr const char *passwordAP = "password";
 
 //----------- EInk Diagramm Helper -----------
 EInkHelper eInkHelper;
@@ -21,7 +21,6 @@ constexpr unsigned long displayUpdateFrequency = 1000;  //(ms)
 SoftwareSerial maraXSerial(D4, D6);  // D6 - RX on Machine , D4 - TX on Machine
 constexpr byte nrMaraXChars = 32;
 char currentMaraXString[nrMaraXChars];
-unsigned long serialUpdateMillis = 0;
 unsigned long timePointSetupFinished = 0;
 
 /**
@@ -71,37 +70,6 @@ void connectToWifi() {
 }
 
 /**
- * @brief Evaluates and stores the current mara x input.
- */
-void getMachineInput() {
-  byte currentIndex = 0;
-  while (maraXSerial.available()) {
-    serialUpdateMillis = millis();
-    char currentMaraXChar = maraXSerial.read();
-
-    if (currentMaraXChar != '\n') {
-      currentMaraXString[currentIndex] = currentMaraXChar;
-      currentIndex++;
-      if (currentIndex >= nrMaraXChars) {
-        currentIndex = nrMaraXChars - 1;
-      }
-    } else {
-      currentMaraXString[currentIndex] = '\0';
-      currentIndex = 0;
-      Serial.println(currentMaraXString);
-    }
-  }
-
-  if (millis() - serialUpdateMillis > 5000) {
-    serialUpdateMillis = millis();
-    memset(currentMaraXString, 0, nrMaraXChars);
-    Serial.print("Request serial update: ");
-    Serial.println(maraXSerial.availableForWrite());
-    maraXSerial.write(0x11);
-  }
-}
-
-/**
  * @brief Prepares the OTA updates.
  */
 void setupOTA() {
@@ -143,9 +111,6 @@ void setupOTA() {
 void setupMaraXCommunication() {
   maraXSerial.begin(9600);
   memset(currentMaraXString, 0, nrMaraXChars);
-  Serial.print("Request initial serial update: ");
-  Serial.println(maraXSerial.availableForWrite());
-  maraXSerial.write(0x11);
 }
 
 void setup() {
@@ -158,6 +123,28 @@ void setup() {
   pinMode(reedSensorPin, INPUT_PULLDOWN_16);
   setupMaraXCommunication();
   timePointSetupFinished = millis();
+}
+
+/**
+ * @brief Evaluates and stores the current mara x input.
+ */
+void readMaraXSerial() {
+  byte currentIndex = 0;
+  while (maraXSerial.available()) {
+    char currentMaraXChar = maraXSerial.read();
+
+    if (currentMaraXChar != '\n') {  // Stream of chars finished
+      currentMaraXString[currentIndex] = currentMaraXChar;
+      currentIndex++;
+      if (currentIndex >= nrMaraXChars) {
+        currentIndex = nrMaraXChars - 1;
+      }
+    } else {
+      currentMaraXString[currentIndex] = '\0';
+      currentIndex = 0;
+      Serial.println(currentMaraXString);
+    }
+  }
 }
 
 /**
@@ -183,12 +170,12 @@ void updateMaraXValuesInDisplay(unsigned int currentTimeInSeconds) {
         // Target Steam temp in C
         eInkHelper.setSteamTemperature(currentSteamTemp, atoi(result));
         break;
-      case 3:
+      case 3: {
         // HX temp in C
         auto hxTemperature = atoi(result);
         eInkHelper.setHXTemperature(hxTemperature);
         eInkHelper.drawPixelInGraph(currentTimeInSeconds, hxTemperature);
-        break;
+      } break;
       case 5:
         // Heating On Off
         eInkHelper.setHeatingStatus(atoi(result));
@@ -202,24 +189,26 @@ void updateMaraXValuesInDisplay(unsigned int currentTimeInSeconds) {
 
 void handlePump() {
   // Pump running not yet recognized, input indicates that it is running
+  const auto currentMillis = millis();
   if (!pumpRunning && !digitalRead(reedSensorPin)) {
-    pumpStartedTime = millis();
+    pumpStartedTime = currentMillis;
     pumpRunning = true;
     Serial.println("Pump started -> Starting shot timer");
   }
-  // Pump no longer running, timer running --> Wait for
-  // thresholdPumpNoLongerRunning to be on the safe side.
+
+  // The reed sensor signals 0's and 1's while the pump is running. If we have stored, that the pump is running, but the
+  // reed sensor indicates that it no longer is running, we have to wait a certain threshold to ensure, that the pump
+  // really stopped.
   if (pumpRunning && digitalRead(reedSensorPin)) {
     if (pumpStoppedTime == 0) {
-      pumpStoppedTime = millis();
+      pumpStoppedTime = currentMillis;
     }
-    if (millis() - pumpStoppedTime > thresholdPumpNoLongerRunning) {
+    if (currentMillis - pumpStoppedTime > thresholdPumpNoLongerRunning) {
       pumpRunning = false;
       pumpStoppedTime = 0;
-      // display.invertDisplay(false);
       Serial.println("Pump stoped -> Stoping shot timer");
-      displayOffStartTime = millis();
-      pumpRunningTime = millis() - pumpStartedTime;
+      displayOffStartTime = currentMillis;
+      pumpRunningTime = currentMillis - pumpStartedTime;
     }
   } else {
     pumpStoppedTime = 0;
@@ -242,7 +231,7 @@ void handleDisplayUpdate(const unsigned long &currentMillis) {
 }
 
 void loop() {
-  getMachineInput();
+  readMaraXSerial();
   handlePump();
   const auto currentMillis = millis();
   if (hasShotBeenPulled(currentMillis)) {
