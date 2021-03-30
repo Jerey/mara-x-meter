@@ -51,8 +51,6 @@ Here another picture further away:
 
 <img src="/documentation/MaraXBottom.png" width="700">
 
-> In case I somehow messed up the pin numbering for the RX and TX, and you do not get any values, try to swap the D4 and D6.
-
 The reed sensor is glued onto the vibration pump. Ensure, that you can read 0's and 1's while activating the pump from the reed sensor. I had to look for a good position to receive any values.
 
 ### Flashing
@@ -77,3 +75,9 @@ Since I already have a Mqtt, NodeRed, Grafana and an InfluxDB up and running, it
 
 - By publishing the data, one could configure a notification, when a certain HX temperature has been reached and been stable for a given time.
 - One could automatically create a table to rate the shots. The given HX temperature with the shot timer could be used as reference.
+
+### Supercapacitor for display shutdown
+
+An e-ink display has to be shutdown properly to avoid pixel burn. Currently, this is done after a given pump running time has been reached. But since the machine often runs the pump to keep a certain temperature in the heat exchanger, this can occur to early.
+
+Adding a supercapacitor, one could recognize the power outage and shutdown the display properly while the capacitor discharges.

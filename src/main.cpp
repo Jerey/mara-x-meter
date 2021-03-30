@@ -12,7 +12,7 @@ constexpr const char *hostName = "MaraXMonitor";
 constexpr const char *ssidAP = "AutoConnectAP";
 constexpr const char *passwordAP = "password";
 
-//----------- EInk Diagramm Helper -----------
+//----------- EInk Diagram Helper -----------
 EInkHelper eInkHelper;
 unsigned long lastDisplayUpdate;
 constexpr unsigned long displayUpdateFrequency = 1000;  //(ms)
@@ -58,7 +58,7 @@ unsigned long displayOffStartTime = 0;
  * Switch the display only off, if the shot timer ran at least 15 s.
  * The pump sometimes runs up to 10s, so it can happen, that the display is automatically switch off.
  */
-constexpr unsigned long minShotTimerForDisplayOff = 15000;
+constexpr unsigned long minShotTimerForDisplayOff = 28000;
 
 /**
  * Function to connect to a wifi. It waits until a connection is established.
