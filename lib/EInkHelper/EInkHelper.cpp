@@ -162,9 +162,11 @@ void EInkHelper::drawRandomBootScreen() {
   }
 }
 void EInkHelper::goToSleep() {
-  clearEntireDisplay();
-  display.powerDown();
-  displayWentToSleep = true;
+  if (isDisplayAwake()) {
+    clearEntireDisplay();
+    display.powerDown();
+    displayWentToSleep = true;
+  }
 }
 bool EInkHelper::isDisplayAwake() { return !displayWentToSleep; }
 void EInkHelper::setupDisplay() {

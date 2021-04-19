@@ -2,6 +2,7 @@
 #include <ArduinoOTA.h>
 
 #include <EInkHelper.hpp>
+// #include <PubSubClient.h>
 #include <SoftwareSerial.h>
 #include <WiFiManager.h>
 
@@ -23,6 +24,13 @@ constexpr byte nrMaraXChars = 32;
 char currentMaraXString[nrMaraXChars];
 unsigned long timePointSetupFinished = 0;
 
+// //----------- MQTT -----------
+// constexpr const char *mqttBroker = "192.168.178.100";  // Enter your mqtt broker address here.
+// WiFiClient espClient;
+// PubSubClient mqttClient(espClient);
+// char mqttBuffer[64];
+// constexpr const char *topicMqttDebug = "debug/voltage";
+
 /**
  * Handle the 1/0 values from the pump. If longer than X ms, the pump probably is off.
  */
@@ -43,22 +51,24 @@ constexpr uint8_t reedSensorPin = D0;
  */
 constexpr unsigned long thresholdPumpNoLongerRunning = 1500;
 
-/**
- * Time until the display shall be switched off, if the shot timer ran long enough.
- */
-constexpr unsigned long displayOffDelay = 10000;
+// /**
+//  * Time until the display shall be switched off, if the shot timer ran long enough.
+//  */
+// constexpr unsigned long displayOffDelay = 10000;
 
-/**
- * As soon as the pump has been switched off, the timepoint is stored to  automatically switch off the display after
- * @see displayOffDelay.
- */
-unsigned long displayOffStartTime = 0;
+// /**
+//  * As soon as the pump has been switched off, the timepoint is stored to  automatically switch off the display after
+//  * @see displayOffDelay.
+//  */
+// unsigned long displayOffStartTime = 0;
 
-/**
- * Switch the display only off, if the shot timer ran at least 15 s.
- * The pump sometimes runs up to 10s, so it can happen, that the display is automatically switch off.
- */
-constexpr unsigned long minShotTimerForDisplayOff = 28000;
+// /**
+//  * Switch the display only off, if the shot timer ran at least 15 s.
+//  * The pump sometimes runs up to 10s, so it can happen, that the display is automatically switch off.
+//  */
+// constexpr unsigned long minShotTimerForDisplayOff = 28000;
+ADC_MODE(ADC_VCC)
+uint16_t maxVoltage = 0;
 
 /**
  * Function to connect to a wifi. It waits until a connection is established.
@@ -122,8 +132,26 @@ void setup() {
 
   pinMode(reedSensorPin, INPUT_PULLDOWN_16);
   setupMaraXCommunication();
+
+  // mqttClient.setServer(mqttBroker, 1883);
+
   timePointSetupFinished = millis();
 }
+
+// /**
+//  * Tries to reconnect to the mqtt broker.
+//  */
+// void reconnectToMqttBroker() {
+//   while (not mqttClient.connected()) {
+//     Serial.print("Reconnecting...");
+//     if (not mqttClient.connect("MaraXMeter")) {
+//       Serial.print("failed, rc=");
+//       Serial.print(mqttClient.state());
+//       Serial.println(" retrying in 5 seconds");
+//       delay(5000);
+//     }
+//   }
+// }
 
 /**
  * @brief Evaluates and stores the current mara x input.
@@ -207,7 +235,7 @@ void handlePump() {
       pumpRunning = false;
       pumpStoppedTime = 0;
       Serial.println("Pump stoped -> Stoping shot timer");
-      displayOffStartTime = currentMillis;
+      // displayOffStartTime = currentMillis;
       pumpRunningTime = currentMillis - pumpStartedTime;
     }
   } else {
@@ -215,10 +243,11 @@ void handlePump() {
   }
 }
 
-bool hasShotBeenPulled(const unsigned long &currentMillis) {
-  return (eInkHelper.isDisplayAwake() && (pumpRunningTime > minShotTimerForDisplayOff) && (displayOffStartTime != 0) &&
-          (currentMillis - displayOffStartTime) > displayOffDelay);
-}
+// bool hasShotBeenPulled(const unsigned long &currentMillis) {
+//   return (eInkHelper.isDisplayAwake() && (pumpRunningTime > minShotTimerForDisplayOff) && (displayOffStartTime != 0)
+//   &&
+//           (currentMillis - displayOffStartTime) > displayOffDelay);
+// }
 /**
  * @brief Writes and updates the values in the display
  */
@@ -230,15 +259,36 @@ void handleDisplayUpdate(const unsigned long &currentMillis) {
   }
 }
 
+// /**
+//  * @brief Tries to publish the given sensorValue to the given targetTopic
+//  */
+// void publishMqttTopic(float sensorValue, const char *targetTopic) {
+//   snprintf(mqttBuffer, sizeof mqttBuffer, "%f", sensorValue);
+//   mqttClient.publish(targetTopic, mqttBuffer);
+//   mqttClient.loop();
+// }
+
 void loop() {
-  readMaraXSerial();
-  handlePump();
-  const auto currentMillis = millis();
-  if (hasShotBeenPulled(currentMillis)) {
-    eInkHelper.goToSleep();
-  } else {
-    eInkHelper.handleShotTimer(pumpRunning, currentMillis, pumpStartedTime);
-    handleDisplayUpdate(currentMillis);
+  if ((millis() - lastDisplayUpdate) > displayUpdateFrequency) {
+    // reconnectToMqttBroker();
+    // mqttClient.loop();
+    // publishMqttTopic(ESP.getVcc() / 1024.0f, topicMqttDebug);
+    // mqttClient.disconnect();
+    Serial.print(ESP.getVcc() / 1024.0f);
+    Serial.println("V");
+  }
+
+  if (eInkHelper.isDisplayAwake()) {
+    maxVoltage = std::max(maxVoltage, ESP.getVcc());
+    readMaraXSerial();
+    handlePump();
+    const auto currentMillis = millis();
+    if ((maxVoltage - ESP.getVcc()) > 500) {
+      eInkHelper.goToSleep();
+    } else {
+      eInkHelper.handleShotTimer(pumpRunning, currentMillis, pumpStartedTime);
+      handleDisplayUpdate(currentMillis);
+    }
   }
   ArduinoOTA.handle();
 }
