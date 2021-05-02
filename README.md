@@ -6,7 +6,7 @@ With this project you can visualize the read data on an e-ink display and even a
 
 ## Motivation
 
-Pulling a perfect espresso (often referred to as god shot) requires a lot of patience and trial and error. Several parameter come into play for a perfect cup of coffee. Two of those factors with an espresso machine are the brewing temperature and the extraction time (or shot time).
+Pulling a perfect espresso (often referred to as a god shot) requires a lot of patience and trial and error. Several parameter come into play for a perfect cup of coffee. Two of those factors with an espresso machine are the brewing temperature and the extraction time (or shot time).
 
 Since the machine enables access to the current heat exchanger temperature(among others), I wanted to visualize it on a display and try to find a way to extract the pump running time, which indicates the shot time.
 
@@ -28,6 +28,10 @@ Here you can see a sample video taken while the mara-x was heating up.
 
 > This video was taken over the course of 30 minutes. Further the machine was already a bit heated up from a previous shot.
 
+## Workflow
+
+My mara x is connected to a wifi controlled power outlet. Whenever I want a coffee, I switch it on and after I am done making my coffee, I switch the outlet off. Since e-ink displays have to be shutdown properly to avoid pixel burn, the D1 mini has to survive around 5s after loosing power to do that. Since batteries usually have a to big capacity for that and are also limited in number of charging cycles, I looked into supercapacitors after [Oliver Ju](https://github.com/helmo2004) suggested those.
+
 ## Setup
 
 To build this project, following parts are needed:
@@ -36,6 +40,10 @@ To build this project, following parts are needed:
 - A reed sensor
 - An e ink display (I chose the Waveshare 4.2 module with two colors)
 - A mara-x
+- A supercapacitor (~ 5F or bigger)
+- A resistor (~ 5Ω)
+
+> I used two supercapacitors with 2.7V and 10F in Series - as this results in a higher voltage capability (up to 5.4V) - but therefore also a smaller capacity (5F).
 
 ### Wiring
 
@@ -53,19 +61,21 @@ Here another picture further away:
 
 #### Reed sensor
 
-The reed sensor is glued onto the vibration pump. Ensure, that you can read 0's and 1's while activating the pump from the reed sensor. I had to look for a good position to receive any values.
+The reed sensor is glued onto the vibration pump. Ensure, that you can read `0`'s and `1`'s while activating the pump from the reed sensor. I had to look for a good position to receive any values.
 
 #### Supercapacitor
 
-The capacitor between 3.3V and ground is needed to properly switch off the e-ink display to avoid pixel burn. Whenever the D1 mini recognizes a power loss, it will automatically shutdown the display. The resistor is needed to limit the current consumed by the capacitor, as the d1 mini otherwise will not switch on. Depending on your setup, this value may vary.
+The capacitor between 3.3V and ground is needed to properly switch off the e-ink display to avoid pixel burn. Whenever the D1 mini recognizes a power loss, it will automatically shutdown the display. The resistor is needed to limit the current consumed by the capacitor (which have a very low [ESR](https://en.wikipedia.org/wiki/Equivalent_series_resistance) of 60mΩ each - so in total 120mΩ), as the d1 mini otherwise will not switch on. Depending on your setup, this value may vary.
 
-> For me, I had cables in my prototype with a rather high resistance and also the chosen supercapacitor has an internal resistance.
+> For me, I had cables in my prototype with a rather high resistance and also the chosen supercapacitor has an internal resistance. The bigger the resistance, the quicker the capacitor discharges through which the d1 mini might not have enough time to switch off the display.
 
 ### Flashing
 
 Initially you will have to flash the software to the D1 mini via usb. Then on the next start, the D1 mini will open up an access point. The password and the ssid name can be found in the code. After connecting to the D1 mini, a wifi configuration page will pop up and you can connect the D1 mini to your wifi. From then on, the D1 mini will automatically connect to your wifi, if available, and you can flash over the air.
 
 The project is built with [platform io](https://docs.platformio.org/en/latest/core/index.html). You can find installation information there.
+
+> It can happen, that you have to specify the `upload_port` in the `platformio.ini`.
 
 ## Further ideas
 

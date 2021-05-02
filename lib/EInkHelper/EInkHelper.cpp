@@ -21,7 +21,7 @@ EInkHelper::EInkHelper()
       heightGraphArea{ 240 },
       xLastGraphArea(widthGraphArea + x0GraphArea),
       yLastGraphArea(heightGraphArea + y0GraphArea),
-      maxTimeInMin{ 30 },
+      maxTimeInMin{ 45 },
       maxTempInCel{ 140 },
       minTempInCel{ 20 },
       nrOfHorizontalLines{ 5 },
