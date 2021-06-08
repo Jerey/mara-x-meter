@@ -24,7 +24,7 @@ Similar to my [coffee grinder automation](https://github.com/Jerey/coffee-automa
 
 Here you can see a sample video taken while the mara-x was heating up.
 
-![](/documentation/SampleHeatup.gif)
+![](/documentation/Heatup.gif)
 
 > This video was taken over the course of 30 minutes. Further the machine was already a bit heated up from a previous shot.
 
