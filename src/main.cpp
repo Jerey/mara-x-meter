@@ -6,10 +6,10 @@
 #include <WiFiManager.h>
 
 //----------- Hostname -----------
-constexpr const char *hostName = "MaraXMonitor";
+constexpr const char *hostName = "MaraXMonitor";  // Name for OTA. See upload_port in the platformio.ini.
 
 //----------- AP -----------
-constexpr const char *ssidAP = "AutoConnectAP";
+constexpr const char *ssidAP = "AutoConnectAP";  // Initial access point name to connect it to the wifi for OTA.
 constexpr const char *passwordAP = "password";
 
 //----------- EInk Diagram Helper -----------
@@ -28,10 +28,6 @@ unsigned long timePointSetupFinished = 0;
  */
 unsigned long pumpStoppedTime = 0;
 
-/**
- * Stores, how long the pump has been running. This is used, to only switch off the display after a long enough period.
- */
-unsigned long pumpRunningTime = 0;
 bool pumpRunning = false;
 
 unsigned long pumpStartedTime = 0;
@@ -193,8 +189,7 @@ void handlePump() {
     if (currentMillis - pumpStoppedTime > thresholdPumpNoLongerRunning) {
       pumpRunning = false;
       pumpStoppedTime = 0;
-      Serial.println("Pump stoped -> Stoping shot timer");
-      pumpRunningTime = currentMillis - pumpStartedTime;
+      Serial.println("Pump stoped -> Stopping shot timer");
     }
   } else {
     pumpStoppedTime = 0;

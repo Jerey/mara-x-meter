@@ -113,12 +113,21 @@ class EInkHelper {
   const int16_t y0GraphArea;
   const int16_t widthGraphArea;
   const int16_t heightGraphArea;
-  const int16_t xLastGraphArea;
-  const int16_t yLastGraphArea;
+  const int16_t xLastGraphArea;  // x0GraphArea + widthGraphArea
+  const int16_t yLastGraphArea;  // y0GraphArea + heightGraphArea
+  /// Defines the total time that can be represented in the graph.
   const unsigned int maxTimeInMin;
+  /// Defines the maximum temperature that can be represented in the graph.
   const unsigned int maxTempInCel;
+  /// Allows setting an offset for the temperature (e.g. starting from 20°C instead of 0°C).
   const unsigned int minTempInCel;
-  // Draw a line every 20° C --> 40, 60, 80, 100, 120
+  /**
+   * @brief Sets the number of horizontal lines.
+   *
+   * Based on minTempInCel and maxTempInCel.
+   * E.g.: minTempInCel = 20°C, maxTempInCel = 140°, nrOfHorizontalLines = 5
+   * --> line drawn every 20 °C (40, 60, 80, 100, 120)
+   */
   const unsigned int nrOfHorizontalLines;
   const unsigned int distanceBetweenHorizontalLines;
 

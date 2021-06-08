@@ -94,4 +94,4 @@ Since I already have a Mqtt, NodeRed, Grafana and an InfluxDB up and running, it
 
 ### Dynamic time axis
 
-Currently, the maximum time on the time axis is fixed and whenever it is exceeded, no further graf is drawn. This time is set to 45 minutes. It would be nice to have a dynamically moving time axis, whenever the current axis cannot represent the newest time points anymore.
+Currently, the maximum time on the time axis is fixed and whenever it is exceeded, no further graph is drawn. This time is set to 45 minutes. It would be nice to have a dynamically moving time axis, whenever the current axis cannot represent the newest time points anymore.
