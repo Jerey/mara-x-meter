@@ -42,6 +42,24 @@ TemperatureHistory::Sample TemperatureHistory::at(uint16_t index) const {
   return samples_[(oldest + index) % kCapacity];
 }
 
+bool TemperatureHistory::hxSteady(uint16_t forS, uint8_t minHx, uint8_t maxHx, uint8_t maxSpread) const {
+  const uint16_t needed = forS / kSampleIntervalS + 1;
+  if (size_ < needed) {
+    return false;
+  }
+  uint8_t lowest = 255;
+  uint8_t highest = 0;
+  for (uint16_t i = size_ - needed; i < size_; ++i) {
+    const uint8_t hx = at(i).hx;
+    if (hx < minHx || hx > maxHx) {
+      return false;
+    }
+    lowest = hx < lowest ? hx : lowest;
+    highest = hx > highest ? hx : highest;
+  }
+  return highest - lowest <= maxSpread;
+}
+
 void TemperatureHistory::clear() {
   head_ = 0;
   size_ = 0;
