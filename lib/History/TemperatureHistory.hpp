@@ -47,6 +47,13 @@ class TemperatureHistory {
   /// @brief Elapsed seconds of the newest sample, 0 when empty.
   uint32_t latestS() const { return empty() ? 0 : timeAt(size_ - 1); }
 
+  /**
+   * @brief True, if the heat exchanger stayed within the band and moved at most maxSpread over the last forS seconds.
+   *
+   * The machine is ready for a shot then. Needs at least forS seconds of samples.
+   */
+  bool hxSteady(uint16_t forS, uint8_t minHx, uint8_t maxHx, uint8_t maxSpread) const;
+
   uint8_t shotCount() const { return shotCount_; }
   Shot shot(uint8_t index) const { return shots_[index]; }
 

@@ -44,6 +44,13 @@ constexpr bool kReedUsesInterrupt = kReedPin != 16;
 constexpr uint32_t kPumpStopThresholdMs = 1500;  // Silence after which the pump counts as stopped.
 constexpr uint32_t kMinShotMs = 15000;  // Shorter pump runs are the machine refreshing the HX water or a backflush.
 
+// The machine is ready for a shot, when the heat exchanger sat in this band and moved at most kReadyHxSpread degrees
+// for kReadyForS seconds. The band depends on the machine and the taste, tune it.
+constexpr uint8_t kReadyHxMin = 92;
+constexpr uint8_t kReadyHxMax = 100;
+constexpr uint8_t kReadyHxSpread = 2;
+constexpr uint16_t kReadyForS = 60;
+
 constexpr uint32_t kRenderIntervalMs = 1000;
 constexpr uint32_t kFullRefreshIntervalMs = 10UL * 60UL * 1000UL;  // Clears e-paper ghosting now and then.
 
@@ -341,6 +348,7 @@ DisplayModel buildModel(uint32_t nowMs) {
   model.shotRunning = shotTimer.running();
   model.hasLastShot = shotTimer.hasLastShot();
   model.shotSeconds = static_cast<uint16_t>(shotTimer.elapsedMs(nowMs) / 1000);
+  model.readyForShot = hasReading && history.hxSteady(kReadyForS, kReadyHxMin, kReadyHxMax, kReadyHxSpread);
   model.wifi = wifiState;
   strncpy(model.ip, wifiIp, sizeof(model.ip) - 1);
   model.apName = kApName;
@@ -349,7 +357,8 @@ DisplayModel buildModel(uint32_t nowMs) {
 }
 
 void render(uint32_t nowMs) {
-  const bool fullDue = nowMs - lastFullRefreshMs >= kFullRefreshIntervalMs;
+  // The full refresh flickers, so not while a shot runs and someone is looking at the timer.
+  const bool fullDue = !shotTimer.running() && nowMs - lastFullRefreshMs >= kFullRefreshIntervalMs;
   const MaraXDisplay::Refresh refresh = display.render(buildModel(nowMs), history, elapsedSeconds(nowMs), fullDue);
   if (refresh == MaraXDisplay::Refresh::Full) {
     lastFullRefreshMs = nowMs;

@@ -73,6 +73,32 @@ void test_clear_forgets_everything() {
   TEST_ASSERT_EQUAL_UINT32(300, h.timeAt(0));
 }
 
+void test_hx_steady_needs_band_and_calm() {
+  TemperatureHistory h;
+  for (uint32_t t = 0; t < 120; t += 5) {
+    h.add(t, static_cast<uint8_t>(80 + t / 10), 120);  // climbing from 80 to 91
+  }
+  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 2));  // still climbing, 86..91 in the last minute
+  for (uint32_t t = 120; t < 200; t += 5) {
+    h.add(t, static_cast<uint8_t>(94 + (t / 5) % 2), 120);  // 94, 95, 94, 95 ...
+  }
+  TEST_ASSERT_TRUE(h.hxSteady(60, 90, 100, 2));
+  TEST_ASSERT_FALSE(h.hxSteady(60, 96, 100, 2));  // out of the band
+  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 0));  // wobbles by one degree
+  h.add(200, 101, 120);
+  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 2));  // one sample out of the band is enough
+}
+
+void test_hx_steady_needs_enough_samples() {
+  TemperatureHistory h;
+  for (uint32_t t = 0; t < 60; t += 5) {
+    h.add(t, 95, 120);
+  }
+  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 2));  // 55 s of samples
+  h.add(60, 95, 120);
+  TEST_ASSERT_TRUE(h.hxSteady(60, 90, 100, 2));
+}
+
 void test_shots_are_capped() {
   TemperatureHistory h;
   for (uint32_t i = 0; i < TemperatureHistory::kMaxShots + 3; ++i) {
@@ -136,6 +162,8 @@ int main(int, char **) {
   RUN_TEST(test_scrolls_when_full);
   RUN_TEST(test_newest_time_moves_on_when_full);
   RUN_TEST(test_clear_forgets_everything);
+  RUN_TEST(test_hx_steady_needs_band_and_calm);
+  RUN_TEST(test_hx_steady_needs_enough_samples);
   RUN_TEST(test_shots_are_capped);
   RUN_TEST(test_window_steps_widen_with_session);
   RUN_TEST(test_window_scrolls_after_three_hours);

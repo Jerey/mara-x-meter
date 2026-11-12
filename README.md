@@ -37,11 +37,12 @@ Here you can see a sample video taken while the mara-x was heating up, with an e
 - **HX**: the current heat exchanger temperature. This is the number that matters for the shot, so it is the biggest one.
 - **STEAM**: the steam boiler temperature and, behind the slash, its target.
 - **SHOT**: the shot timer in seconds while the pump runs. After the shot, the length of the last shot stays there. Pump runs shorter than 15 seconds are ignored, since that is the machine refreshing the water in the hx or a backflush and not me pulling a shot.
-- The badges show, whether the machine is in steam priority (coffee priority is the normal case and gets no badge), whether the heating is on, the boost countdown after a shot and the wifi state with the IP address for flashing.
+- A small flame next to `STEAM` shows, that the heating element is on.
+- The badges show `READY`, when the hx temperature sat in the brewing band (92 to 100 °C, see the constants in `main.cpp`) and did not move for a minute, and whether the machine is in steam priority (coffee priority is the normal case and gets no badge). At the right the wifi state with the IP address for flashing.
 - If the D1 mini did not start from a power on (crash, watchdog, a dip of the supply), a small `RESET` note with the reason appears next to the wifi state until the next power cycle. Helpful, since the serial monitor is usually not connected in the kitchen.
 - The graph shows the hx (solid) and the steam (dotted) temperature over time. Every shot is marked with a triangle and its length. The time axis starts with 30 minutes and widens in steps up to three hours, so the whole session stays visible.
 
-The panel is refreshed partially whenever a value changed (that takes about half a second) and fully every ten minutes to get rid of ghosting.
+The panel is refreshed partially whenever a value changed (that takes about half a second) and fully every ten minutes to get rid of ghosting, but not while a shot runs, since the full refresh flickers.
 
 While the meter starts and after it is switched off, the panel shows the logo. It is drawn a bit differently every time: it sits somewhere else, is sliced into shifted (sometimes inverted) bands and gets some random scan lines, so no pixel sees the same picture for days.
 

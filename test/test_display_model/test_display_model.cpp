@@ -42,16 +42,11 @@ void test_shown_values_matter() {
   TEST_ASSERT_FALSE(a.sameAs(b));
 }
 
-void test_boost_countdown_only_matters_in_minutes() {
+void test_boost_countdown_is_not_shown() {
   const DisplayModel a = sampleModel();
   DisplayModel b = sampleModel();
-  b.reading.boostCountdown = 599;  // still 10 minutes
+  b.reading.boostCountdown = 0;
   TEST_ASSERT_TRUE(a.sameAs(b));
-  b.reading.boostCountdown = 541;  // still 10 minutes
-  TEST_ASSERT_TRUE(a.sameAs(b));
-  b.reading.boostCountdown = 540;  // 9 minutes
-  TEST_ASSERT_FALSE(a.sameAs(b));
-  TEST_ASSERT_EQUAL_UINT16(0, DisplayModel::boostMinutes(MaraXReading{}));
 }
 
 void test_without_reading_the_reading_is_ignored() {
@@ -67,7 +62,7 @@ int main(int, char **) {
   UNITY_BEGIN();
   RUN_TEST(test_same_values_look_the_same);
   RUN_TEST(test_shown_values_matter);
-  RUN_TEST(test_boost_countdown_only_matters_in_minutes);
+  RUN_TEST(test_boost_countdown_is_not_shown);
   RUN_TEST(test_without_reading_the_reading_is_ignored);
   return UNITY_END();
 }
