@@ -94,8 +94,8 @@ void test_dying_capacitor_never_recovers() {
   PowerMonitor monitor(500, 1, 2000);
   monitor.noteSupply(3300);
   TEST_ASSERT_TRUE(monitor.noteSupply(2700));
-  for (uint32_t t = 0; t < 20; ++t) {
-    TEST_ASSERT_FALSE(monitor.noteSupplyAfterShutdown(static_cast<uint16_t>(2700 - t * 10), 1000 + t * 1000));
+  for (uint32_t second = 0; second < 20; ++second) {
+    TEST_ASSERT_FALSE(monitor.noteSupplyAfterShutdown(static_cast<uint16_t>(2700 - second * 10), 1000 + second * 1000));
   }
 }
 

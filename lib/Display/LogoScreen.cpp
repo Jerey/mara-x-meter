@@ -90,15 +90,15 @@ void drawTag(Adafruit_GFX &gfx, Dice &dice, const char *tag, uint16_t black) {
   gfx.setFont(&FreeSans9pt7b);
   gfx.setTextColor(black);
   gfx.setTextSize(1);
-  int16_t bx, by;
-  uint16_t bw, bh;
-  gfx.getTextBounds(tag, 0, 0, &bx, &by, &bw, &bh);
-  const int16_t x = dice.between(kMargin + 10, kPanelWidth - kMargin - 10 - static_cast<int16_t>(bw));
+  int16_t textX, textY;
+  uint16_t textWidth, textHeight;
+  gfx.getTextBounds(tag, 0, 0, &textX, &textY, &textWidth, &textHeight);
+  const int16_t x = dice.between(kMargin + 10, kPanelWidth - kMargin - 10 - static_cast<int16_t>(textWidth));
   const int16_t baseline = kPanelHeight - dice.between(10, 16);
   gfx.setCursor(x, baseline);
   gfx.print(tag);
   // A cursor block behind the text.
-  gfx.fillRect(x + bw + 4, baseline - 10, 7, 11, black);
+  gfx.fillRect(x + textWidth + 4, baseline - 10, 7, 11, black);
 }
 
 }  // namespace

@@ -6,45 +6,45 @@ void setUp() {}
 void tearDown() {}
 
 void test_parses_coffee_priority_line() {
-  MaraXReading r;
-  TEST_ASSERT_TRUE(parseMaraXLine("C1.06,116,124,093,0840,1,0", r));
-  TEST_ASSERT_EQUAL(static_cast<int>(MaraXReading::Mode::CoffeePriority), static_cast<int>(r.mode));
-  TEST_ASSERT_EQUAL_STRING("1.06", r.firmware);
-  TEST_ASSERT_EQUAL_UINT8(116, r.steamTemperature);
-  TEST_ASSERT_EQUAL_UINT8(124, r.steamTarget);
-  TEST_ASSERT_EQUAL_UINT8(93, r.hxTemperature);
-  TEST_ASSERT_EQUAL_UINT16(840, r.boostCountdown);
-  TEST_ASSERT_TRUE(r.heatingOn);
-  TEST_ASSERT_TRUE(r.hasPumpField);
-  TEST_ASSERT_FALSE(r.pumpOn);
+  MaraXReading reading;
+  TEST_ASSERT_TRUE(parseMaraXLine("C1.06,116,124,093,0840,1,0", reading));
+  TEST_ASSERT_EQUAL(static_cast<int>(MaraXReading::Mode::CoffeePriority), static_cast<int>(reading.mode));
+  TEST_ASSERT_EQUAL_STRING("1.06", reading.firmware);
+  TEST_ASSERT_EQUAL_UINT8(116, reading.steamTemperature);
+  TEST_ASSERT_EQUAL_UINT8(124, reading.steamTarget);
+  TEST_ASSERT_EQUAL_UINT8(93, reading.hxTemperature);
+  TEST_ASSERT_EQUAL_UINT16(840, reading.boostCountdown);
+  TEST_ASSERT_TRUE(reading.heatingOn);
+  TEST_ASSERT_TRUE(reading.hasPumpField);
+  TEST_ASSERT_FALSE(reading.pumpOn);
 }
 
 void test_parses_steam_priority_without_pump_field() {
-  MaraXReading r;
-  TEST_ASSERT_TRUE(parseMaraXLine("V1.06,130,131,101,0000,0", r));
-  TEST_ASSERT_EQUAL(static_cast<int>(MaraXReading::Mode::SteamPriority), static_cast<int>(r.mode));
-  TEST_ASSERT_FALSE(r.heatingOn);
-  TEST_ASSERT_FALSE(r.hasPumpField);
-  TEST_ASSERT_EQUAL_UINT16(0, r.boostCountdown);
+  MaraXReading reading;
+  TEST_ASSERT_TRUE(parseMaraXLine("V1.06,130,131,101,0000,0", reading));
+  TEST_ASSERT_EQUAL(static_cast<int>(MaraXReading::Mode::SteamPriority), static_cast<int>(reading.mode));
+  TEST_ASSERT_FALSE(reading.heatingOn);
+  TEST_ASSERT_FALSE(reading.hasPumpField);
+  TEST_ASSERT_EQUAL_UINT16(0, reading.boostCountdown);
 }
 
 void test_tolerates_carriage_return_and_spaces() {
-  MaraXReading r;
-  TEST_ASSERT_TRUE(parseMaraXLine(" C2.01,116,124,093,0840,1,1\r", r));
-  TEST_ASSERT_TRUE(r.pumpOn);
-  TEST_ASSERT_EQUAL_STRING("2.01", r.firmware);
+  MaraXReading reading;
+  TEST_ASSERT_TRUE(parseMaraXLine(" C2.01,116,124,093,0840,1,1\r", reading));
+  TEST_ASSERT_TRUE(reading.pumpOn);
+  TEST_ASSERT_EQUAL_STRING("2.01", reading.firmware);
 }
 
 void test_rejects_garbage_and_keeps_output_untouched() {
-  MaraXReading r;
-  r.hxTemperature = 42;
-  TEST_ASSERT_FALSE(parseMaraXLine("", r));
-  TEST_ASSERT_FALSE(parseMaraXLine("hello world", r));
-  TEST_ASSERT_FALSE(parseMaraXLine("C1.06,116,124", r));
-  TEST_ASSERT_FALSE(parseMaraXLine("X1.06,116,124,093,0840,1,0", r));
-  TEST_ASSERT_FALSE(parseMaraXLine("C1.06,1a6,124,093,0840,1,0", r));
-  TEST_ASSERT_FALSE(parseMaraXLine("C1.06,,124,093,0840,1,0", r));
-  TEST_ASSERT_EQUAL_UINT8(42, r.hxTemperature);
+  MaraXReading reading;
+  reading.hxTemperature = 42;
+  TEST_ASSERT_FALSE(parseMaraXLine("", reading));
+  TEST_ASSERT_FALSE(parseMaraXLine("hello world", reading));
+  TEST_ASSERT_FALSE(parseMaraXLine("C1.06,116,124", reading));
+  TEST_ASSERT_FALSE(parseMaraXLine("X1.06,116,124,093,0840,1,0", reading));
+  TEST_ASSERT_FALSE(parseMaraXLine("C1.06,1a6,124,093,0840,1,0", reading));
+  TEST_ASSERT_FALSE(parseMaraXLine("C1.06,,124,093,0840,1,0", reading));
+  TEST_ASSERT_EQUAL_UINT8(42, reading.hxTemperature);
 }
 
 void test_line_reader_assembles_split_input() {

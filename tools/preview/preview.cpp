@@ -21,25 +21,27 @@ double smoothstep(double x) {
 }
 
 /// @brief The dip of the heat exchanger after a shot: a short spike, then down by 13 degrees, back within six minutes.
-double shotDip(double sinceShotS) {
-  if (sinceShotS < 0) {
+double shotDip(double sinceShotSeconds) {
+  if (sinceShotSeconds < 0) {
     return 0;
   }
-  if (sinceShotS < 20) {
-    return 4 * (1 - sinceShotS / 20);
+  if (sinceShotSeconds < 20) {
+    return 4 * (1 - sinceShotSeconds / 20);
   }
-  if (sinceShotS < 80) {
-    return -13 * smoothstep((sinceShotS - 20) / 60);
+  if (sinceShotSeconds < 80) {
+    return -13 * smoothstep((sinceShotSeconds - 20) / 60);
   }
-  return -13 * (1 - smoothstep((sinceShotS - 80) / 300));
+  return -13 * (1 - smoothstep((sinceShotSeconds - 80) / 300));
 }
 
 /// What a Mara X does from cold, traced from a real morning: the steam boiler shoots past 140 degrees while it heats
 /// the heat exchanger and then drifts down to its target, the heat exchanger sits still for a few minutes and then
 /// climbs in an S curve to just below 100.
-void fillHistory(TemperatureHistory &history, uint32_t untilS, uint32_t shotAtS, uint32_t secondShotAtS) {
-  for (uint32_t t = 0; t <= untilS; t += TemperatureHistory::kSampleIntervalS) {
-    const double seconds = static_cast<double>(t);
+void fillHistory(TemperatureHistory &history, uint32_t untilSeconds, uint32_t shotAtSeconds,
+                 uint32_t secondShotAtSeconds) {
+  for (uint32_t elapsedSeconds = 0; elapsedSeconds <= untilSeconds;
+       elapsedSeconds += TemperatureHistory::kSampleIntervalSeconds) {
+    const double seconds = static_cast<double>(elapsedSeconds);
     double steam = 22 + 8 * smoothstep(seconds / 120) + 115 * smoothstep((seconds - 120) / 660);
     if (seconds > 780) {
       steam -= 27 * smoothstep((seconds - 780) / 1320);
@@ -51,19 +53,19 @@ void fillHistory(TemperatureHistory &history, uint32_t untilS, uint32_t shotAtS,
     if (seconds > 1200) {
       hx += 1.5 * sin(seconds / 150.0);
     }
-    if (shotAtS > 0) {
-      hx += shotDip(seconds - static_cast<double>(shotAtS));
+    if (shotAtSeconds > 0) {
+      hx += shotDip(seconds - static_cast<double>(shotAtSeconds));
     }
-    if (secondShotAtS > 0) {
-      hx += shotDip(seconds - static_cast<double>(secondShotAtS));
+    if (secondShotAtSeconds > 0) {
+      hx += shotDip(seconds - static_cast<double>(secondShotAtSeconds));
     }
-    history.add(t, static_cast<uint8_t>(hx + 0.5), static_cast<uint8_t>(steam + 0.5));
+    history.add(elapsedSeconds, static_cast<uint8_t>(hx + 0.5), static_cast<uint8_t>(steam + 0.5));
   }
-  if (shotAtS > 0) {
-    history.addShot(shotAtS, 27);
+  if (shotAtSeconds > 0) {
+    history.addShot(shotAtSeconds, 27);
   }
-  if (secondShotAtS > 0) {
-    history.addShot(secondShotAtS, 31);
+  if (secondShotAtSeconds > 0) {
+    history.addShot(secondShotAtSeconds, 31);
   }
 }
 
@@ -79,14 +81,15 @@ void writePbm(const char *path, const GFXcanvas1 &canvas) {
   printf("wrote %s\n", path);
 }
 
-void renderScene(const char *path, const DisplayModel &model, const TemperatureHistory &history, uint32_t elapsedS) {
+void renderScene(const char *path, const DisplayModel &model, const TemperatureHistory &history,
+                 uint32_t elapsedSeconds) {
   fprintf(stderr, "scene %s: %u samples, first hx=%u last hx=%u latest=%lus\n", path, history.size(),
           history.empty() ? 0 : history.at(0).hx, history.empty() ? 0 : history.at(history.size() - 1).hx,
-          static_cast<unsigned long>(history.latestS()));
+          static_cast<unsigned long>(history.latestSeconds()));
   GFXcanvas1 canvas(kWidth, kHeight);
   canvas.fillScreen(0);
   DashboardPainter painter(canvas, 1, 0);
-  painter.paint(model, history, GraphWindow::forElapsed(elapsedS));
+  painter.paint(model, history, GraphWindow::forElapsed(elapsedSeconds));
   writePbm(path, canvas);
 }
 

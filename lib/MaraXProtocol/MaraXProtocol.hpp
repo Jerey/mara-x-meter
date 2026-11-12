@@ -44,7 +44,7 @@ class LineReader {
   static constexpr size_t kCapacity = 48;
 
   /// @brief Feeds one character. @return true, when a complete line is available via line().
-  bool push(char c);
+  bool push(char character);
 
   /// @brief The last complete line, valid until the next push().
   const char *line() const { return buffer_; }
