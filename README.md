@@ -105,6 +105,8 @@ The project is built with [platform io](https://docs.platformio.org/en/latest/co
 
 > It can happen, that you have to specify the `upload_port` in the `platformio.ini`.
 
+Every tagged version (`git tag v2.0 && git push --tags`) gets a [release](https://github.com/Jerey/mara-x-meter/releases) with the built firmware attached, so it can also be flashed without platform io: via usb with `esptool.py --port /dev/cu.usbserial-10 write_flash 0x0 mara-x-meter-v2.0.bin` or over the air with `espota.py -i MaraXMonitor.local -f mara-x-meter-v2.0.bin`.
+
 The serial output (`pio device monitor`, 74880 baud, the same rate the ESP8266 uses for its boot messages) shows every line received from the machine and what the shot timer and the wifi are doing. Quite handy while wiring everything up.
 
 ## Development
