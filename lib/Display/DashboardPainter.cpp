@@ -22,7 +22,7 @@ constexpr int16_t kShotTileX = 288;
 constexpr int16_t kSmallFontCapHeight = 13;  // FreeSans 9pt
 constexpr int16_t kSmallFontHeight = 8;      // built in 6x8 font
 
-// Strip of badges below the tiles: mode, heating, boost, wifi.
+// Strip of badges below the tiles: ready, mode, wifi.
 constexpr int16_t kBadgeY = kHeaderHeight + 4;
 constexpr int16_t kBadgeHeight = 18;
 constexpr int16_t kBadgePadX = 5;
@@ -37,10 +37,24 @@ constexpr int16_t kMarkerHalfWidth = 4;
 constexpr int16_t kMarkerHeight = 6;
 
 constexpr int kMinTemp = 20;
-constexpr int kMaxTemp = 140;
+constexpr int kMaxTemp = 150;
 constexpr int kGridStep = 20;
 
 constexpr int16_t graphBottom() { return kGraphY + kGraphHeight - 1; }
+
+// Icons, 1 bit per pixel, most significant bit first, 1 = ink.
+constexpr int16_t kFlameIconWidth = 11;
+constexpr int16_t kFlameIconHeight = 14;
+const uint8_t kFlameIcon[] PROGMEM = {
+  0x04, 0x00, 0x0C, 0x00, 0x0E, 0x00, 0x1E, 0x00, 0x1F, 0x00, 0x3F, 0x00, 0x3F, 0x80,
+  0x7B, 0xC0, 0x71, 0xC0, 0xF1, 0xE0, 0xF1, 0xE0, 0x71, 0xC0, 0x31, 0x80, 0x1F, 0x00,
+};
+constexpr int16_t kWifiIconWidth = 15;
+constexpr int16_t kWifiIconHeight = 11;
+const uint8_t kWifiIcon[] PROGMEM = {
+  0x07, 0xC0, 0x18, 0x30, 0x27, 0xC8, 0x4C, 0x64, 0x90, 0x12, 0x23,
+  0x88, 0x44, 0x44, 0x08, 0x20, 0x01, 0x00, 0x03, 0x80, 0x01, 0x00,
+};
 
 }  // namespace
 
@@ -71,6 +85,11 @@ void DashboardPainter::drawHeader(const DisplayModel &model) {
   gfx_.print("HX");
   gfx_.setCursor(kSteamTileX + kGap, kTileLabelBaseline);
   gfx_.print("STEAM");
+  if (valid && r.heatingOn) {
+    // A small flame next to the label while the heating element is on.
+    gfx_.drawBitmap(gfx_.getCursorX() + kGap, kTileLabelBaseline - kFlameIconHeight + 1, kFlameIcon, kFlameIconWidth,
+                    kFlameIconHeight, black_);
+  }
   gfx_.setCursor(kShotTileX + kGap, kTileLabelBaseline);
   gfx_.print(!model.shotRunning && model.hasLastShot ? "LAST SHOT" : "SHOT");
 
@@ -148,40 +167,44 @@ void DashboardPainter::drawBadges(const DisplayModel &model) {
   int16_t x = kGap;
   if (model.hasReading) {
     const MaraXReading &r = model.reading;
+    if (model.readyForShot) {
+      x = drawBadge(x, kBadgeY, "READY", true) + kGap;
+    }
     // Coffee priority is the normal case and gets no badge.
     if (r.mode == MaraXReading::Mode::SteamPriority) {
       x = drawBadge(x, kBadgeY, "STEAM PRIO", true) + kGap;
     }
-    if (r.heatingOn) {
-      x = drawBadge(x, kBadgeY, "HEATING", false) + kGap;
-    }
-    if (r.boostCountdown > 0) {
-      char text[20];
-      snprintf(text, sizeof(text), "BOOST %u min", static_cast<unsigned>(DisplayModel::boostMinutes(r)));
-      x = drawBadge(x, kBadgeY, text, false) + kGap;
-    }
   }
 
-  // Wifi state right aligned in the small font, so it stays unobtrusive.
-  char wifi[32];
+  // Wifi state right aligned: the arcs, crossed out without wifi, and the IP in the small font for flashing.
+  const char *wifi = "";
   switch (model.wifi) {
-    case DisplayModel::Wifi::Connected: snprintf(wifi, sizeof(wifi), "WIFI %s", model.ip); break;
-    case DisplayModel::Wifi::Connecting: snprintf(wifi, sizeof(wifi), "WIFI ..."); break;
-    case DisplayModel::Wifi::Portal: snprintf(wifi, sizeof(wifi), "WIFI SETUP"); break;
+    case DisplayModel::Wifi::Connected: wifi = model.ip; break;
+    case DisplayModel::Wifi::Connecting: wifi = "..."; break;
+    case DisplayModel::Wifi::Portal: wifi = "SETUP"; break;
     case DisplayModel::Wifi::Off:
-    default: snprintf(wifi, sizeof(wifi), "NO WIFI"); break;
+    default: break;
   }
   gfx_.setFont(nullptr);
   gfx_.setTextColor(black_);
+  const int16_t lineY = model.restartNote ? kBadgeY : kBadgeY + (kBadgeHeight - kSmallFontHeight) / 2;
+  const int16_t textWidthPx = *wifi ? textWidth(wifi) + 4 : 0;
+  const int16_t iconX = kPanelWidth - kGap - textWidthPx - kWifiIconWidth;
+  const int16_t iconY = lineY + kSmallFontHeight / 2 - kWifiIconHeight / 2;
+  gfx_.drawBitmap(iconX, iconY, kWifiIcon, kWifiIconWidth, kWifiIconHeight, black_);
+  if (model.wifi == DisplayModel::Wifi::Off) {
+    gfx_.drawLine(iconX, iconY + kWifiIconHeight - 1, iconX + kWifiIconWidth - 1, iconY, black_);
+    gfx_.drawLine(iconX + 1, iconY + kWifiIconHeight - 1, iconX + kWifiIconWidth, iconY, black_);
+  }
+  if (*wifi) {
+    drawTextRightAligned(kPanelWidth - kGap, lineY, wifi);
+  }
   if (model.restartNote) {
     // The meter did not start from a power on: say why, in a second line below the wifi state, until the next
     // proper power cycle.
     char note[40];
     snprintf(note, sizeof(note), "RESET: %s", model.restartNote);
-    drawTextRightAligned(kPanelWidth - kGap, kBadgeY, wifi);
     drawTextRightAligned(kPanelWidth - kGap, kBadgeY + kSmallFontHeight + 2, note);
-  } else {
-    drawTextRightAligned(kPanelWidth - kGap, kBadgeY + (kBadgeHeight - kSmallFontHeight) / 2, wifi);
   }
 }
 
@@ -347,7 +370,7 @@ void DashboardPainter::drawWaitingNote(const DisplayModel &model) {
   drawTextCentered(xCenter, yCenter - 4, "Waiting for the Mara X ...");
   if (model.wifi == DisplayModel::Wifi::Portal && model.apName) {
     char text[64];
-    snprintf(text, sizeof(text), "Connect to the wifi %s to set up the wifi", model.apName);
+    snprintf(text, sizeof(text), "Wifi setup: connect to %s", model.apName);
     drawTextCentered(xCenter, yCenter + 20, text);
   }
 }
