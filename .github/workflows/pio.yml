@@ -1,24 +1,38 @@
 name: PlatformIO CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # Pinned on purpose: ubuntu-latest moves to a new release every two years.
+    runs-on: ubuntu-26.04
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
-          key: ${{ runner.os }}-pio
-      - uses: actions/setup-python@v4
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: ${{ runner.os }}-pio-
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.9'
-      - name: Install PlatformIO Core
-        run: pip install --upgrade platformio
+          python-version: '3.12'
+      - name: Install PlatformIO Core and clang-format
+        run: pip install --upgrade platformio clang-format
 
-      - name: Build PlatformIO Project
-        run: pio run
+      - name: Formatting (clang-format)
+        run: clang-format --dry-run -Werror src/*.cpp lib/*/*.cpp lib/*/*.hpp test/*/*.cpp tools/preview/preview.cpp
+
+      - name: Static analysis (cppcheck)
+        run: pio check -e d1_mini_usb --fail-on-defect=medium --fail-on-defect=high
+
+      - name: Unit tests (host)
+        run: pio test -e native
+
+      - name: Build firmware
+        run: pio run -e d1_mini_usb
+
+      - name: Render the dashboard preview
+        run: tools/preview/build.sh
