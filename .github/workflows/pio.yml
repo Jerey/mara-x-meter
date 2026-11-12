@@ -36,3 +36,29 @@ jobs:
 
       - name: Render the dashboard preview
         run: tools/preview/build.sh
+
+  # A tag like v2.0 gets a GitHub release with the firmware attached, so it can be flashed without PlatformIO.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build firmware
+        run: |
+          pio run -e d1_mini_usb
+          cp .pio/build/d1_mini_usb/firmware.bin mara-x-meter-${{ github.ref_name }}.bin
+
+      - name: Create the release
+        run: gh release create "${{ github.ref_name }}" mara-x-meter-${{ github.ref_name }}.bin --title "${{ github.ref_name }}" --notes "Firmware for the D1 mini, see the readme on how to flash it."
+        env:
+          GH_TOKEN: ${{ github.token }}
