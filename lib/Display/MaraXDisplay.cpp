@@ -22,11 +22,13 @@ void MaraXDisplay::showLogo(uint32_t seed, const char *tag) {
 }
 
 MaraXDisplay::Refresh MaraXDisplay::render(const DisplayModel &model, const TemperatureHistory &history,
-                                           uint32_t elapsedS, bool forceFull) {
-  const GraphWindow window = GraphWindow::forElapsed(elapsedS);
-  const bool windowChanged = window.startS != lastWindowStartS_ || window.spanS != lastWindowSpanS_;
+                                           uint32_t elapsedSeconds, bool forceFull) {
+  const GraphWindow window = GraphWindow::forElapsed(elapsedSeconds);
+  const bool windowChanged =
+      window.startSeconds != lastWindowStartSeconds_ || window.spanSeconds != lastWindowSpanSeconds_;
   // The newest sample time moves on even when the ring buffer is full and the size stays the same.
-  const bool historyChanged = history.latestS() != lastHistoryLatestS_ || history.shotCount() != lastShotCount_;
+  const bool historyChanged =
+      history.latestSeconds() != lastHistoryLatestSeconds_ || history.shotCount() != lastShotCount_;
   const bool modelChanged = !hasRendered_ || !model.sameAs(lastModel_);
   if (!forceFull && !windowChanged && !historyChanged && !modelChanged) {
     return Refresh::None;
@@ -41,10 +43,10 @@ MaraXDisplay::Refresh MaraXDisplay::render(const DisplayModel &model, const Temp
 
   lastModel_ = model;
   hasRendered_ = true;
-  lastHistoryLatestS_ = history.latestS();
+  lastHistoryLatestSeconds_ = history.latestSeconds();
   lastShotCount_ = history.shotCount();
-  lastWindowStartS_ = window.startS;
-  lastWindowSpanS_ = window.spanS;
+  lastWindowStartSeconds_ = window.startSeconds;
+  lastWindowSpanSeconds_ = window.spanSeconds;
   return full ? Refresh::Full : Refresh::Partial;
 }
 

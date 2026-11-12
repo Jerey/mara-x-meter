@@ -78,14 +78,14 @@ void DashboardPainter::paint(const DisplayModel &model, const TemperatureHistory
 
 void DashboardPainter::drawHeader(const DisplayModel &model) {
   const bool valid = model.hasReading;
-  const MaraXReading &r = model.reading;
+  const MaraXReading &reading = model.reading;
 
   gfx_.setFont(&FreeSans9pt7b);
   gfx_.setCursor(kHxTileX + kGap, kTileLabelBaseline);
   gfx_.print("HX");
   gfx_.setCursor(kSteamTileX + kGap, kTileLabelBaseline);
   gfx_.print("STEAM");
-  if (valid && r.heatingOn) {
+  if (valid && reading.heatingOn) {
     // A small flame next to the label while the heating element is on.
     gfx_.drawBitmap(gfx_.getCursorX() + kGap, kTileLabelBaseline - kFlameIconHeight + 1, kFlameIcon, kFlameIconWidth,
                     kFlameIconHeight, black_);
@@ -94,13 +94,13 @@ void DashboardPainter::drawHeader(const DisplayModel &model) {
   gfx_.print(!model.shotRunning && model.hasLastShot ? "LAST SHOT" : "SHOT");
 
   // Heat exchanger: the number that matters most, so it is the largest.
-  drawTemperatureValue(kHxTileX + kGap, kTileValueBaseline, r.hxTemperature, valid, FreeSansBold24pt7b);
+  drawTemperatureValue(kHxTileX + kGap, kTileValueBaseline, reading.hxTemperature, valid, FreeSansBold24pt7b);
 
   // Steam boiler: a bit smaller, the target behind a slash.
   char text[16];
   gfx_.setFont(&FreeSansBold18pt7b);
   if (valid) {
-    snprintf(text, sizeof(text), "%d", r.steamTemperature);
+    snprintf(text, sizeof(text), "%d", reading.steamTemperature);
   } else {
     strncpy(text, "--", sizeof(text));
   }
@@ -109,7 +109,7 @@ void DashboardPainter::drawHeader(const DisplayModel &model) {
   const int16_t afterSteam = gfx_.getCursorX() + 3;
   gfx_.setFont(&FreeSansBold12pt7b);
   if (valid) {
-    snprintf(text, sizeof(text), "/%d", r.steamTarget);
+    snprintf(text, sizeof(text), "/%d", reading.steamTarget);
   } else {
     strncpy(text, "/--", sizeof(text));
   }
@@ -166,12 +166,12 @@ void DashboardPainter::drawBadges(const DisplayModel &model) {
   gfx_.setFont(&FreeSans9pt7b);
   int16_t x = kGap;
   if (model.hasReading) {
-    const MaraXReading &r = model.reading;
+    const MaraXReading &reading = model.reading;
     if (model.readyForShot) {
       x = drawBadge(x, kBadgeY, "READY", true) + kGap;
     }
     // Coffee priority is the normal case and gets no badge.
-    if (r.mode == MaraXReading::Mode::SteamPriority) {
+    if (reading.mode == MaraXReading::Mode::SteamPriority) {
       x = drawBadge(x, kBadgeY, "STEAM PRIO", true) + kGap;
     }
   }
@@ -245,12 +245,13 @@ void DashboardPainter::drawGraph(const TemperatureHistory &history, const GraphW
   }
 
   // Time ticks and labels in minutes.
-  const uint32_t firstTick = ((window.startS + window.tickS - 1) / window.tickS) * window.tickS;
-  for (uint32_t t = firstTick; t <= window.startS + window.spanS; t += window.tickS) {
-    const int16_t x = window.xFor(t, kGraphX, kGraphWidth);
+  const uint32_t firstTick = ((window.startSeconds + window.tickSeconds - 1) / window.tickSeconds) * window.tickSeconds;
+  for (uint32_t tickSeconds = firstTick; tickSeconds <= window.startSeconds + window.spanSeconds;
+       tickSeconds += window.tickSeconds) {
+    const int16_t x = window.xFor(tickSeconds, kGraphX, kGraphWidth);
     gfx_.drawFastVLine(x, graphBottom() + 1, 3, black_);
     char label[12];
-    snprintf(label, sizeof(label), "%lu", static_cast<unsigned long>(t / 60));
+    snprintf(label, sizeof(label), "%lu", static_cast<unsigned long>(tickSeconds / 60));
     const int16_t width = textWidth(label);
     int16_t xLabel = x - width / 2;
     if (xLabel + width > kPanelWidth - kGap) {
@@ -278,12 +279,12 @@ void DashboardPainter::drawTraces(const TemperatureHistory &history, const Graph
   int16_t xLastSteamDot = -1;
 
   for (uint16_t i = 0; i < history.size(); ++i) {
-    const uint32_t t = history.timeAt(i);
-    if (t < window.startS) {
+    const uint32_t sampleSeconds = history.timeAt(i);
+    if (sampleSeconds < window.startSeconds) {
       continue;
     }
     const TemperatureHistory::Sample sample = history.at(i);
-    const int16_t x = window.xFor(t, kGraphX + 1, kGraphWidth - 2);
+    const int16_t x = window.xFor(sampleSeconds, kGraphX + 1, kGraphWidth - 2);
     const int16_t yHx = yForTemperature(sample.hx, top, height, kMinTemp, kMaxTemp);
     const int16_t ySteam = yForTemperature(sample.steam, top, height, kMinTemp, kMaxTemp);
 
@@ -309,13 +310,13 @@ void DashboardPainter::drawTraces(const TemperatureHistory &history, const Graph
 
 void DashboardPainter::drawShotMarkers(const TemperatureHistory &history, const GraphWindow &window) {
   gfx_.setFont(nullptr);
-  const uint32_t endS = window.startS + window.spanS;
+  const uint32_t endSeconds = window.startSeconds + window.spanSeconds;
   for (uint8_t i = 0; i < history.shotCount(); ++i) {
     const TemperatureHistory::Shot shot = history.shot(i);
-    if (shot.startS < window.startS || shot.startS > endS) {
+    if (shot.startSeconds < window.startSeconds || shot.startSeconds > endSeconds) {
       continue;
     }
-    const int16_t x = window.xFor(shot.startS, kGraphX + 1, kGraphWidth - 2);
+    const int16_t x = window.xFor(shot.startSeconds, kGraphX + 1, kGraphWidth - 2);
     // Triangle hanging from the top edge, a dotted drop line and the shot length next to it.
     gfx_.fillTriangle(x - kMarkerHalfWidth, kGraphY + 1, x + kMarkerHalfWidth, kGraphY + 1, x,
                       kGraphY + 1 + kMarkerHeight, black_);
@@ -323,10 +324,10 @@ void DashboardPainter::drawShotMarkers(const TemperatureHistory &history, const 
       gfx_.drawPixel(x, y, black_);
     }
     char label[8];
-    snprintf(label, sizeof(label), "%us", static_cast<unsigned>(shot.durationS));
+    snprintf(label, sizeof(label), "%us", static_cast<unsigned>(shot.durationSeconds));
     // Two shots shortly after each other would print on top of each other, then only the later one gets a label.
-    const bool nextIsClose = i + 1 < history.shotCount() && history.shot(i + 1).startS <= endS &&
-                             window.xFor(history.shot(i + 1).startS, kGraphX + 1, kGraphWidth - 2) - x <
+    const bool nextIsClose = i + 1 < history.shotCount() && history.shot(i + 1).startSeconds <= endSeconds &&
+                             window.xFor(history.shot(i + 1).startSeconds, kGraphX + 1, kGraphWidth - 2) - x <
                                  textWidth(label) + kMarkerHalfWidth + 8;
     if (!nextIsClose) {
       gfx_.setCursor(x + kMarkerHalfWidth + 2, kGraphY + 3);

@@ -42,9 +42,9 @@ struct DisplayModel {
     if (!hasReading) {
       return true;
     }
-    const MaraXReading &a = reading;
-    const MaraXReading &b = other.reading;
-    return a.mode == b.mode && a.steamTemperature == b.steamTemperature && a.steamTarget == b.steamTarget &&
-           a.hxTemperature == b.hxTemperature && a.heatingOn == b.heatingOn;
+    const MaraXReading &theirs = other.reading;
+    return reading.mode == theirs.mode && reading.steamTemperature == theirs.steamTemperature &&
+           reading.steamTarget == theirs.steamTarget && reading.hxTemperature == theirs.hxTemperature &&
+           reading.heatingOn == theirs.heatingOn;
   }
 };

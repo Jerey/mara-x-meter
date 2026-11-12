@@ -45,11 +45,11 @@ constexpr uint32_t kPumpStopThresholdMs = 1500;  // Silence after which the pump
 constexpr uint32_t kMinShotMs = 15000;  // Shorter pump runs are the machine refreshing the HX water or a backflush.
 
 // The machine is ready for a shot, when the heat exchanger sat in this band and moved at most kReadyHxSpread degrees
-// for kReadyForS seconds. The band depends on the machine and the taste, tune it.
+// for kReadyForSeconds seconds. The band depends on the machine and the taste, tune it.
 constexpr uint8_t kReadyHxMin = 92;
 constexpr uint8_t kReadyHxMax = 100;
 constexpr uint8_t kReadyHxSpread = 2;
-constexpr uint16_t kReadyForS = 60;
+constexpr uint16_t kReadyForSeconds = 60;
 
 constexpr uint32_t kRenderIntervalMs = 1000;
 constexpr uint32_t kFullRefreshIntervalMs = 10UL * 60UL * 1000UL;  // Clears e-paper ghosting now and then.
@@ -74,7 +74,7 @@ constexpr uint32_t kMaraXSilenceMs = 1000;
 // power dip, so the next start can tell that apart from a crash.
 constexpr uint32_t kRtcPowerDipMagic = 0x4D415241;  // "MARA"
 
-constexpr uint32_t kWifiConnectTimeoutS = 15;
+constexpr uint32_t kWifiConnectTimeoutSeconds = 15;
 constexpr uint32_t kWifiPortalTimeoutMs = 180UL * 1000UL;
 // Same rate as the boot ROM of the ESP8266, so one monitor shows the boot messages and this log.
 constexpr uint32_t kSerialBaud = 74880;
@@ -258,7 +258,7 @@ void setupWifi() {
   WiFi.hostname(kHostName);
   wifiManager.setHostname(kHostName);
   wifiManager.setConfigPortalBlocking(false);
-  wifiManager.setConnectTimeout(kWifiConnectTimeoutS);
+  wifiManager.setConnectTimeout(kWifiConnectTimeoutSeconds);
   wifiManager.setWiFiAutoReconnect(true);
   if (!wifiManager.autoConnect(kApName, kApPassword)) {
     portalStartedMs = millis();
@@ -348,7 +348,7 @@ DisplayModel buildModel(uint32_t nowMs) {
   model.shotRunning = shotTimer.running();
   model.hasLastShot = shotTimer.hasLastShot();
   model.shotSeconds = static_cast<uint16_t>(shotTimer.elapsedMs(nowMs) / 1000);
-  model.readyForShot = hasReading && history.hxSteady(kReadyForS, kReadyHxMin, kReadyHxMax, kReadyHxSpread);
+  model.readyForShot = hasReading && history.hxSteady(kReadyForSeconds, kReadyHxMin, kReadyHxMax, kReadyHxSpread);
   model.wifi = wifiState;
   strncpy(model.ip, wifiIp, sizeof(model.ip) - 1);
   model.apName = kApName;

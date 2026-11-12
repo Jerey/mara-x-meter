@@ -6,9 +6,9 @@ void tearDown() {}
 
 /// @brief Simulates the reed sensor: a pulse every 100 ms between startMs and endMs.
 static void pulse(ShotTimer &timer, uint32_t startMs, uint32_t endMs) {
-  for (uint32_t t = startMs; t <= endMs; t += 100) {
-    timer.noteActivity(t);
-    timer.update(t);
+  for (uint32_t nowMs = startMs; nowMs <= endMs; nowMs += 100) {
+    timer.noteActivity(nowMs);
+    timer.update(nowMs);
   }
 }
 

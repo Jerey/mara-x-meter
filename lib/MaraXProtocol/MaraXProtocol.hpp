@@ -6,11 +6,12 @@
  * @brief One reading of the serial telemetry, which the Lelit Mara X sends roughly twice a second.
  *
  * Example line: "C1.06,116,124,093,0840,1,0"
- *   0  mode and firmware: 'C' = coffee priority, 'V' = steam ("vapour") priority, then the firmware version
+ *   0  mode and firmware: 'C' = coffee priority, 'V' = steam ("vapore") priority, then the firmware version
  *   1  steam boiler temperature in C
  *   2  steam boiler target temperature in C
  *   3  heat exchanger temperature in C
- *   4  boost countdown in s (the machine boosts heating after a shot and counts the remaining seconds down)
+ *   4  countdown in s of the fast heating phase: starts at 1200 after switching on and after a shot, counts down
+ *      once a second and jumps to 0 once the target temperature is reached
  *   5  heating element on (1) or off (0)
  *   6  pump running (1) or off (0), only present on newer firmware
  */
@@ -43,7 +44,7 @@ class LineReader {
   static constexpr size_t kCapacity = 48;
 
   /// @brief Feeds one character. @return true, when a complete line is available via line().
-  bool push(char c);
+  bool push(char character);
 
   /// @brief The last complete line, valid until the next push().
   const char *line() const { return buffer_; }

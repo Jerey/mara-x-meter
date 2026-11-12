@@ -5,142 +5,142 @@ void setUp() {}
 void tearDown() {}
 
 void test_keeps_latest_value_per_interval() {
-  TemperatureHistory h;
-  TEST_ASSERT_TRUE(h.add(0, 20, 30));
-  TEST_ASSERT_FALSE(h.add(1, 21, 31));
-  TEST_ASSERT_FALSE(h.add(4, 22, 32));
-  TEST_ASSERT_EQUAL_UINT16(1, h.size());
-  TEST_ASSERT_EQUAL_UINT8(22, h.at(0).hx);
-  TEST_ASSERT_EQUAL_UINT8(32, h.at(0).steam);
-  TEST_ASSERT_TRUE(h.add(5, 23, 33));
-  TEST_ASSERT_EQUAL_UINT16(2, h.size());
-  TEST_ASSERT_EQUAL_UINT32(0, h.timeAt(0));
-  TEST_ASSERT_EQUAL_UINT32(5, h.timeAt(1));
-  TEST_ASSERT_EQUAL_UINT32(5, h.latestS());
+  TemperatureHistory history;
+  TEST_ASSERT_TRUE(history.add(0, 20, 30));
+  TEST_ASSERT_FALSE(history.add(1, 21, 31));
+  TEST_ASSERT_FALSE(history.add(4, 22, 32));
+  TEST_ASSERT_EQUAL_UINT16(1, history.size());
+  TEST_ASSERT_EQUAL_UINT8(22, history.at(0).hx);
+  TEST_ASSERT_EQUAL_UINT8(32, history.at(0).steam);
+  TEST_ASSERT_TRUE(history.add(5, 23, 33));
+  TEST_ASSERT_EQUAL_UINT16(2, history.size());
+  TEST_ASSERT_EQUAL_UINT32(0, history.timeAt(0));
+  TEST_ASSERT_EQUAL_UINT32(5, history.timeAt(1));
+  TEST_ASSERT_EQUAL_UINT32(5, history.latestSeconds());
 }
 
 void test_fills_skipped_intervals() {
-  TemperatureHistory h;
-  h.add(0, 50, 60);
-  h.add(20, 54, 64);  // intervals 5, 10, 15 skipped
-  TEST_ASSERT_EQUAL_UINT16(5, h.size());
-  TEST_ASSERT_EQUAL_UINT8(54, h.at(1).hx);
-  TEST_ASSERT_EQUAL_UINT8(54, h.at(4).hx);
+  TemperatureHistory history;
+  history.add(0, 50, 60);
+  history.add(20, 54, 64);  // intervals 5, 10, 15 skipped
+  TEST_ASSERT_EQUAL_UINT16(5, history.size());
+  TEST_ASSERT_EQUAL_UINT8(54, history.at(1).hx);
+  TEST_ASSERT_EQUAL_UINT8(54, history.at(4).hx);
 }
 
 void test_first_sample_may_start_late() {
-  TemperatureHistory h;
-  h.add(123, 80, 110);
-  TEST_ASSERT_EQUAL_UINT16(1, h.size());
-  TEST_ASSERT_EQUAL_UINT32(120, h.timeAt(0));
+  TemperatureHistory history;
+  history.add(123, 80, 110);
+  TEST_ASSERT_EQUAL_UINT16(1, history.size());
+  TEST_ASSERT_EQUAL_UINT32(120, history.timeAt(0));
 }
 
 void test_scrolls_when_full() {
-  TemperatureHistory h;
-  const uint32_t interval = TemperatureHistory::kSampleIntervalS;
+  TemperatureHistory history;
+  const uint32_t interval = TemperatureHistory::kSampleIntervalSeconds;
   for (uint32_t i = 0; i < TemperatureHistory::kCapacity + 10; ++i) {
-    h.add(i * interval, static_cast<uint8_t>(i % 200), 100);
+    history.add(i * interval, static_cast<uint8_t>(i % 200), 100);
   }
-  TEST_ASSERT_EQUAL_UINT16(TemperatureHistory::kCapacity, h.size());
-  TEST_ASSERT_EQUAL_UINT32(10 * interval, h.timeAt(0));
-  TEST_ASSERT_EQUAL_UINT8(10 % 200, h.at(0).hx);
-  TEST_ASSERT_EQUAL_UINT8((TemperatureHistory::kCapacity + 9) % 200, h.at(h.size() - 1).hx);
+  TEST_ASSERT_EQUAL_UINT16(TemperatureHistory::kCapacity, history.size());
+  TEST_ASSERT_EQUAL_UINT32(10 * interval, history.timeAt(0));
+  TEST_ASSERT_EQUAL_UINT8(10 % 200, history.at(0).hx);
+  TEST_ASSERT_EQUAL_UINT8((TemperatureHistory::kCapacity + 9) % 200, history.at(history.size() - 1).hx);
 }
 
 void test_newest_time_moves_on_when_full() {
-  // The graph is redrawn when latestS() changes, which must keep working once the size no longer changes.
-  TemperatureHistory h;
-  const uint32_t interval = TemperatureHistory::kSampleIntervalS;
+  // The graph is redrawn when latestSeconds() changes, which must keep working once the size no longer changes.
+  TemperatureHistory history;
+  const uint32_t interval = TemperatureHistory::kSampleIntervalSeconds;
   for (uint32_t i = 0; i < TemperatureHistory::kCapacity; ++i) {
-    h.add(i * interval, 90, 120);
+    history.add(i * interval, 90, 120);
   }
-  const uint32_t before = h.latestS();
-  TEST_ASSERT_TRUE(h.add(TemperatureHistory::kCapacity * interval, 90, 120));
-  TEST_ASSERT_EQUAL_UINT16(TemperatureHistory::kCapacity, h.size());
-  TEST_ASSERT_EQUAL_UINT32(before + interval, h.latestS());
+  const uint32_t before = history.latestSeconds();
+  TEST_ASSERT_TRUE(history.add(TemperatureHistory::kCapacity * interval, 90, 120));
+  TEST_ASSERT_EQUAL_UINT16(TemperatureHistory::kCapacity, history.size());
+  TEST_ASSERT_EQUAL_UINT32(before + interval, history.latestSeconds());
 }
 
 void test_clear_forgets_everything() {
-  TemperatureHistory h;
-  h.add(0, 50, 60);
-  h.add(10, 51, 61);
-  h.addShot(10, 25);
-  h.clear();
-  TEST_ASSERT_TRUE(h.empty());
-  TEST_ASSERT_EQUAL_UINT8(0, h.shotCount());
-  TEST_ASSERT_EQUAL_UINT32(0, h.latestS());
-  h.add(300, 70, 80);
-  TEST_ASSERT_EQUAL_UINT32(300, h.timeAt(0));
+  TemperatureHistory history;
+  history.add(0, 50, 60);
+  history.add(10, 51, 61);
+  history.addShot(10, 25);
+  history.clear();
+  TEST_ASSERT_TRUE(history.empty());
+  TEST_ASSERT_EQUAL_UINT8(0, history.shotCount());
+  TEST_ASSERT_EQUAL_UINT32(0, history.latestSeconds());
+  history.add(300, 70, 80);
+  TEST_ASSERT_EQUAL_UINT32(300, history.timeAt(0));
 }
 
 void test_hx_steady_needs_band_and_calm() {
-  TemperatureHistory h;
-  for (uint32_t t = 0; t < 120; t += 5) {
-    h.add(t, static_cast<uint8_t>(80 + t / 10), 120);  // climbing from 80 to 91
+  TemperatureHistory history;
+  for (uint32_t elapsedSeconds = 0; elapsedSeconds < 120; elapsedSeconds += 5) {
+    history.add(elapsedSeconds, static_cast<uint8_t>(80 + elapsedSeconds / 10), 120);  // climbing from 80 to 91
   }
-  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 2));  // still climbing, 86..91 in the last minute
-  for (uint32_t t = 120; t < 200; t += 5) {
-    h.add(t, static_cast<uint8_t>(94 + (t / 5) % 2), 120);  // 94, 95, 94, 95 ...
+  TEST_ASSERT_FALSE(history.hxSteady(60, 90, 100, 2));  // still climbing, 86..91 in the last minute
+  for (uint32_t elapsedSeconds = 120; elapsedSeconds < 200; elapsedSeconds += 5) {
+    history.add(elapsedSeconds, static_cast<uint8_t>(94 + (elapsedSeconds / 5) % 2), 120);  // 94, 95, 94, 95 ...
   }
-  TEST_ASSERT_TRUE(h.hxSteady(60, 90, 100, 2));
-  TEST_ASSERT_FALSE(h.hxSteady(60, 96, 100, 2));  // out of the band
-  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 0));  // wobbles by one degree
-  h.add(200, 101, 120);
-  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 2));  // one sample out of the band is enough
+  TEST_ASSERT_TRUE(history.hxSteady(60, 90, 100, 2));
+  TEST_ASSERT_FALSE(history.hxSteady(60, 96, 100, 2));  // out of the band
+  TEST_ASSERT_FALSE(history.hxSteady(60, 90, 100, 0));  // wobbles by one degree
+  history.add(200, 101, 120);
+  TEST_ASSERT_FALSE(history.hxSteady(60, 90, 100, 2));  // one sample out of the band is enough
 }
 
 void test_hx_steady_needs_enough_samples() {
-  TemperatureHistory h;
-  for (uint32_t t = 0; t < 60; t += 5) {
-    h.add(t, 95, 120);
+  TemperatureHistory history;
+  for (uint32_t elapsedSeconds = 0; elapsedSeconds < 60; elapsedSeconds += 5) {
+    history.add(elapsedSeconds, 95, 120);
   }
-  TEST_ASSERT_FALSE(h.hxSteady(60, 90, 100, 2));  // 55 s of samples
-  h.add(60, 95, 120);
-  TEST_ASSERT_TRUE(h.hxSteady(60, 90, 100, 2));
+  TEST_ASSERT_FALSE(history.hxSteady(60, 90, 100, 2));  // 55 s of samples
+  history.add(60, 95, 120);
+  TEST_ASSERT_TRUE(history.hxSteady(60, 90, 100, 2));
 }
 
 void test_shots_are_capped() {
-  TemperatureHistory h;
+  TemperatureHistory history;
   for (uint32_t i = 0; i < TemperatureHistory::kMaxShots + 3; ++i) {
-    h.addShot(i * 100, 25);
+    history.addShot(i * 100, 25);
   }
-  TEST_ASSERT_EQUAL_UINT8(TemperatureHistory::kMaxShots, h.shotCount());
-  TEST_ASSERT_EQUAL_UINT32(300, h.shot(0).startS);
+  TEST_ASSERT_EQUAL_UINT8(TemperatureHistory::kMaxShots, history.shotCount());
+  TEST_ASSERT_EQUAL_UINT32(300, history.shot(0).startSeconds);
 }
 
 void test_window_steps_widen_with_session() {
-  GraphWindow w = GraphWindow::forElapsed(0);
-  TEST_ASSERT_EQUAL_UINT32(0, w.startS);
-  TEST_ASSERT_EQUAL_UINT32(30 * 60, w.spanS);
-  TEST_ASSERT_EQUAL_UINT16(5 * 60, w.tickS);
+  GraphWindow window = GraphWindow::forElapsed(0);
+  TEST_ASSERT_EQUAL_UINT32(0, window.startSeconds);
+  TEST_ASSERT_EQUAL_UINT32(30 * 60, window.spanSeconds);
+  TEST_ASSERT_EQUAL_UINT16(5 * 60, window.tickSeconds);
 
-  w = GraphWindow::forElapsed(30 * 60);
-  TEST_ASSERT_EQUAL_UINT32(30 * 60, w.spanS);
-  w = GraphWindow::forElapsed(30 * 60 + 1);
-  TEST_ASSERT_EQUAL_UINT32(45 * 60, w.spanS);
-  w = GraphWindow::forElapsed(70 * 60);
-  TEST_ASSERT_EQUAL_UINT32(90 * 60, w.spanS);
-  TEST_ASSERT_EQUAL_UINT16(15 * 60, w.tickS);
-  w = GraphWindow::forElapsed(179 * 60);
-  TEST_ASSERT_EQUAL_UINT32(180 * 60, w.spanS);
-  TEST_ASSERT_EQUAL_UINT32(0, w.startS);
+  window = GraphWindow::forElapsed(30 * 60);
+  TEST_ASSERT_EQUAL_UINT32(30 * 60, window.spanSeconds);
+  window = GraphWindow::forElapsed(30 * 60 + 1);
+  TEST_ASSERT_EQUAL_UINT32(45 * 60, window.spanSeconds);
+  window = GraphWindow::forElapsed(70 * 60);
+  TEST_ASSERT_EQUAL_UINT32(90 * 60, window.spanSeconds);
+  TEST_ASSERT_EQUAL_UINT16(15 * 60, window.tickSeconds);
+  window = GraphWindow::forElapsed(179 * 60);
+  TEST_ASSERT_EQUAL_UINT32(180 * 60, window.spanSeconds);
+  TEST_ASSERT_EQUAL_UINT32(0, window.startSeconds);
 }
 
 void test_window_scrolls_after_three_hours() {
-  GraphWindow w = GraphWindow::forElapsed(181 * 60);
-  TEST_ASSERT_EQUAL_UINT32(180 * 60, w.spanS);
-  TEST_ASSERT_EQUAL_UINT32(30 * 60, w.startS);  // rounded up to the next tick
-  TEST_ASSERT_TRUE(w.startS + w.spanS >= 181 * 60);
-  w = GraphWindow::forElapsed(250 * 60);
-  TEST_ASSERT_EQUAL_UINT32(90 * 60, w.startS);
+  GraphWindow window = GraphWindow::forElapsed(181 * 60);
+  TEST_ASSERT_EQUAL_UINT32(180 * 60, window.spanSeconds);
+  TEST_ASSERT_EQUAL_UINT32(30 * 60, window.startSeconds);  // rounded up to the next tick
+  TEST_ASSERT_TRUE(window.startSeconds + window.spanSeconds >= 181 * 60);
+  window = GraphWindow::forElapsed(250 * 60);
+  TEST_ASSERT_EQUAL_UINT32(90 * 60, window.startSeconds);
 }
 
 void test_x_mapping_clamps_and_scales() {
-  GraphWindow w{ 0, 1800, 300 };
-  TEST_ASSERT_EQUAL_INT16(40, w.xFor(0, 40, 360));
-  TEST_ASSERT_EQUAL_INT16(40 + 359, w.xFor(1800, 40, 360));
-  TEST_ASSERT_EQUAL_INT16(40 + 359, w.xFor(5000, 40, 360));
-  TEST_ASSERT_EQUAL_INT16(40 + 179, w.xFor(900, 40, 360));
+  GraphWindow window{ 0, 1800, 300 };
+  TEST_ASSERT_EQUAL_INT16(40, window.xFor(0, 40, 360));
+  TEST_ASSERT_EQUAL_INT16(40 + 359, window.xFor(1800, 40, 360));
+  TEST_ASSERT_EQUAL_INT16(40 + 359, window.xFor(5000, 40, 360));
+  TEST_ASSERT_EQUAL_INT16(40 + 179, window.xFor(900, 40, 360));
   GraphWindow scrolled{ 600, 1800, 300 };
   TEST_ASSERT_EQUAL_INT16(40, scrolled.xFor(100, 40, 360));
   TEST_ASSERT_EQUAL_INT16(40, scrolled.xFor(600, 40, 360));

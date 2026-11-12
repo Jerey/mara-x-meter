@@ -28,8 +28,8 @@ bool parseUnsigned(const char *field, unsigned long &value) {
   if (*field == '\0') {
     return false;
   }
-  for (const char *c = field; *c != '\0'; ++c) {
-    if (*c < '0' || *c > '9') {
+  for (const char *cursor = field; *cursor != '\0'; ++cursor) {
+    if (*cursor < '0' || *cursor > '9') {
       return false;
     }
   }
@@ -59,8 +59,9 @@ bool parseMaraXLine(const char *line, MaraXReading &out) {
   strncpy(copy, line, sizeof(copy) - 1);
   copy[sizeof(copy) - 1] = '\0';
   // Strip trailing line endings or spaces.
-  for (size_t n = strlen(copy); n > 0 && (copy[n - 1] == '\r' || copy[n - 1] == '\n' || copy[n - 1] == ' '); --n) {
-    copy[n - 1] = '\0';
+  for (size_t length = strlen(copy);
+       length > 0 && (copy[length - 1] == '\r' || copy[length - 1] == '\n' || copy[length - 1] == ' '); --length) {
+    copy[length - 1] = '\0';
   }
 
   const char *fields[kMaxFields] = { nullptr };
@@ -99,21 +100,21 @@ bool parseMaraXLine(const char *line, MaraXReading &out) {
   return true;
 }
 
-bool LineReader::push(char c) {
-  if (c == '\n') {
+bool LineReader::push(char character) {
+  if (character == '\n') {
     const bool complete = !overflowed_ && length_ > 0;
     buffer_[length_] = '\0';
     length_ = 0;
     overflowed_ = false;
     return complete;
   }
-  if (c == '\r') {
+  if (character == '\r') {
     return false;
   }
   if (length_ >= kCapacity - 1) {
     overflowed_ = true;
     return false;
   }
-  buffer_[length_++] = c;
+  buffer_[length_++] = character;
   return false;
 }

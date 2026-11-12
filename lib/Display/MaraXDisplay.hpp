@@ -31,10 +31,10 @@ class MaraXDisplay {
    * @brief Draws the dashboard and refreshes the panel, when something changed.
    *
    * @param forceFull Use a full refresh (slow, flickers, removes ghosting) instead of a partial one.
-   * @param elapsedS Seconds since the session started, defines the visible time window of the graph.
+   * @param elapsedSeconds Seconds since the session started, defines the visible time window of the graph.
    * @return Which kind of refresh happened.
    */
-  Refresh render(const DisplayModel &model, const TemperatureHistory &history, uint32_t elapsedS, bool forceFull);
+  Refresh render(const DisplayModel &model, const TemperatureHistory &history, uint32_t elapsedSeconds, bool forceFull);
 
   /**
    * @brief Clears the panel, shows the off screen and puts the panel into deep sleep.
@@ -51,10 +51,10 @@ class MaraXDisplay {
   DashboardPainter painter_;
   DisplayModel lastModel_;
   bool hasRendered_ = false;
-  uint32_t lastHistoryLatestS_ = 0;
+  uint32_t lastHistoryLatestSeconds_ = 0;
   uint8_t lastShotCount_ = 0;
-  uint32_t lastWindowStartS_ = 0;
-  uint32_t lastWindowSpanS_ = 0;
+  uint32_t lastWindowStartSeconds_ = 0;
+  uint32_t lastWindowSpanSeconds_ = 0;
 };
 
 static_assert(PanelDriver::WIDTH == kPanelWidth && PanelDriver::HEIGHT == kPanelHeight,
