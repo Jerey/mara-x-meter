@@ -4,6 +4,10 @@ The [Lelit Mara X](https://marax.lelit.com/) is a heat exchanger (hx) espresso m
 
 With this project you can visualize the read data on an e-ink display and even automatically start a shot timer.
 
+![The mara-x meter in its wooden frame](/documentation/MaraXMeterPhoto.jpg)
+
+> The meter right after a shot: the hx dropped from 97 to 84 °C, the steam boiler is still on its way down from the heat-up.
+
 ![Dashboard of the mara-x meter](/documentation/dashboard-preview.png)
 
 > This is the desktop preview of the dashboard (see [Development](#development)), showing a session of 70 minutes with two shots.
