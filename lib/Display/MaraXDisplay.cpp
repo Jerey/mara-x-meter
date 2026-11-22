@@ -23,9 +23,12 @@ void MaraXDisplay::showLogo(uint32_t seed, const char *tag) {
 
 MaraXDisplay::Refresh MaraXDisplay::render(const DisplayModel &model, const TemperatureHistory &history,
                                            uint32_t elapsedSeconds, bool forceFull) {
-  const GraphWindow window = GraphWindow::forElapsed(elapsedSeconds);
+  // A new time window means a full refresh, which blocks the loop for longer than the shot timer waits for the
+  // next pump pulse. So the window stays as it is while a shot runs, the newest points sit at the right edge
+  // until the shot is over.
+  const GraphWindow window = model.shotRunning && hasRendered_ ? lastWindow_ : GraphWindow::forElapsed(elapsedSeconds);
   const bool windowChanged =
-      window.startSeconds != lastWindowStartSeconds_ || window.spanSeconds != lastWindowSpanSeconds_;
+      window.startSeconds != lastWindow_.startSeconds || window.spanSeconds != lastWindow_.spanSeconds;
   // The newest sample time moves on even when the ring buffer is full and the size stays the same.
   const bool historyChanged =
       history.latestSeconds() != lastHistoryLatestSeconds_ || history.shotCount() != lastShotCount_;
@@ -45,8 +48,7 @@ MaraXDisplay::Refresh MaraXDisplay::render(const DisplayModel &model, const Temp
   hasRendered_ = true;
   lastHistoryLatestSeconds_ = history.latestSeconds();
   lastShotCount_ = history.shotCount();
-  lastWindowStartSeconds_ = window.startSeconds;
-  lastWindowSpanSeconds_ = window.spanSeconds;
+  lastWindow_ = window;
   return full ? Refresh::Full : Refresh::Partial;
 }
 

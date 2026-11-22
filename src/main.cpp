@@ -42,7 +42,7 @@ constexpr int kMaraXRxBuffer = 256;  // Enough for several lines while a panel r
 constexpr uint8_t kReedPin = REED_PIN;
 constexpr bool kReedUsesInterrupt = kReedPin != 16;
 constexpr uint32_t kPumpStopThresholdMs = 1500;  // Silence after which the pump counts as stopped.
-constexpr uint32_t kMinShotMs = 15000;  // Shorter pump runs are the machine refreshing the HX water or a backflush.
+constexpr uint32_t kMinShotMs = 20000;  // Shorter pump runs are the machine refreshing the HX water or a backflush.
 
 // The machine is ready for a shot, when the heat exchanger sat in this band and moved at most kReadyHxSpread degrees
 // for kReadyForSeconds seconds. The band depends on the machine and the taste, tune it.
