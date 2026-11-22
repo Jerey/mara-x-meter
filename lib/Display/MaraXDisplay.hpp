@@ -53,8 +53,7 @@ class MaraXDisplay {
   bool hasRendered_ = false;
   uint32_t lastHistoryLatestSeconds_ = 0;
   uint8_t lastShotCount_ = 0;
-  uint32_t lastWindowStartSeconds_ = 0;
-  uint32_t lastWindowSpanSeconds_ = 0;
+  GraphWindow lastWindow_{ 0, 0, 0 };
 };
 
 static_assert(PanelDriver::WIDTH == kPanelWidth && PanelDriver::HEIGHT == kPanelHeight,
